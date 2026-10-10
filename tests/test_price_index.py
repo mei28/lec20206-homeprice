@@ -62,3 +62,15 @@ def test_lookup_maps_known_periods_and_rejects_unknown_ones():
     assert price_index.lookup(periods, index, np.array([2024.25, 2024.0])).tolist() == [0.1, 0.0]
     with pytest.raises(KeyError):
         price_index.lookup(periods, index, np.array([2024.5]))
+
+
+def test_offset_looks_up_known_periods_and_extrapolates_later_ones():
+    periods, index = np.array([2024.0, 2024.25, 2024.5]), np.array([0.0, 0.1, 0.2])
+    out = price_index.offset(periods, index, np.array([2024.25, 2024.75, 2024.0]), k=3)
+    assert out == pytest.approx([0.1, 0.3, 0.0])
+
+
+def test_offset_rejects_periods_before_the_last_one_without_an_index():
+    periods, index = np.array([2024.0, 2024.5]), np.array([0.0, 0.2])
+    with pytest.raises(KeyError):
+        price_index.offset(periods, index, np.array([2024.25]), k=2)

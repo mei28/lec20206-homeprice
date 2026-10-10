@@ -48,3 +48,14 @@ def lookup(periods: np.ndarray, index: np.ndarray, t: np.ndarray) -> np.ndarray:
     if not known.all():
         raise KeyError(f"periods without an index value: {sorted(set(np.asarray(t)[~known].tolist()))[:5]}")
     return index[position]
+
+
+def offset(periods: np.ndarray, index: np.ndarray, t: np.ndarray, *, k: int) -> np.ndarray:
+    """Index value per row: looked up for periods the index covers, linearly extrapolated (last `k`
+    periods) for periods after the last one. Any other period raises."""
+    t = np.asarray(t, dtype=float)
+    out = np.empty(len(t))
+    later = t > periods[-1]
+    out[later] = extrapolate(periods, index, t[later], how="linear", k=k)
+    out[~later] = lookup(periods, index, t[~later])
+    return out

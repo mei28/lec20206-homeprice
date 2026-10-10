@@ -432,6 +432,28 @@ def _(errors, np, pl):
 
 
 @app.cell
+def _(correlation, counts_effect, mo, pl, summary):
+    def row(run):
+        return summary.filter(pl.col("run") == run).row(0, named=True)
+
+    def corr(a, b):
+        return correlation.filter(pl.col("model") == a)[b][0]
+
+    mo.md(f"""
+    ## 結果を読む
+
+    - MLP は {row("mlp")["holdout_rmsle"]:.4f}、RandomForest は {row("random_forest")["holdout_rmsle"]:.4f}、Ridge は {row("ridge")["holdout_rmsle"]:.4f} で、
+      どれも単独では GBDT（LightGBM {row("lightgbm")["holdout_rmsle"]:.4f}、CatBoost {row("catboost")["holdout_rmsle"]:.4f}）に届きませんでした。予想どおりです。
+    - 間違え方は違います。LightGBM との誤差の相関は、Ridge が {corr("ridge", "lightgbm"):.3f}、MLP と RandomForest が {corr("mlp", "lightgbm"):.3f} と {corr("random_forest", "lightgbm"):.3f} で、
+      GBDT どうし（LightGBM と XGBoost で {corr("xgboost", "lightgbm"):.3f}）より低くなっています。これが S9 で役に立つかを確かめます。
+    - Ridge と MLP は平均のずれ（{row("ridge")["bias"]:+.3f}、{row("mlp")["bias"]:+.3f}）が GBDT より大きく、低めに予測しています。
+    - 件数の列（#33）は Ridge で {counts_effect[0]:+.4f}（95% の範囲 {counts_effect[1]:+.4f}〜{counts_effect[2]:+.4f}）効きました。
+      LightGBM では偶然の範囲だった特徴量が、カテゴリを細かく扱えない線形モデルでは効く、という #33 の予想どおりの結果です。
+    """)
+    return
+
+
+@app.cell
 def _(mo):
     mo.md(r"""
     ## 4. 提出ファイルを作る

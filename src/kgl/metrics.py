@@ -20,6 +20,7 @@ _METRICS: dict[str, tuple[Metric, bool]] = {
     "f1_macro": (lambda y, p: float(skm.f1_score(y, p, average="macro")), True),
     "rmse": (_rmse, False),
     "mae": (lambda y, p: float(skm.mean_absolute_error(y, p)), False),
+    "rmsle": (lambda y, p: float(skm.root_mean_squared_log_error(y, p)), False),
 }
 
 

@@ -565,6 +565,19 @@ def _(mo, residual_tables):
 
 
 @app.cell
+def _(mo, residual_tables):
+    by_quarter = residual_tables["quarter"]["bias"].to_list()
+    by_age = residual_tables["age"]
+    mo.md(f"""
+    四半期ごとの平均のずれは {by_quarter[0]:+.3f} と {by_quarter[1]:+.3f} になり、S3（-0.031 と -0.050）からほぼ消えました。
+    一方、築年数による違いは残っています。築10年未満は {by_age["bias"][0]:+.3f}、築50年代は {by_age["bias"][-1]:+.3f} で、
+    新しい物件ほど低め、古い物件ほど高めに予測しています。区分ごとの指数（#32）ではこの差を縮められなかったので、
+    S5 の Target encoding や S6・S7 の別のモデルで変わるかを見ていきます。
+    """)
+    return
+
+
+@app.cell
 def _(mo):
     mo.md(r"""
     ## 6. 提出ファイルを作る

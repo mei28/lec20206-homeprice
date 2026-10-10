@@ -24,3 +24,10 @@
 | s5_te | te | 0.2038 |  | s4_trend | rmsle | S4 hedonic_linear + te (#18) | output/s5_te/te |
 | s5_te | te_in_sample | 0.2042 |  | s4_trend | rmsle | S4 hedonic_linear + te_in_sample (#18) | output/s5_te/te_in_sample |
 | s5_te | te_raw_leak | 0.2039 |  | s4_trend | rmsle | S4 hedonic_linear + te_raw_leak (#18) | output/s5_te/te_raw_leak |
+| s6_gbdt | catboost | 0.1990 |  | s5_te | rmsle | catboost on the S5 feature set (#24) | output/s6_gbdt/catboost |
+| s6_gbdt | xgboost | 0.2103 |  | s5_te | rmsle | xgboost on the S5 feature set (#27) | output/s6_gbdt/xgboost |
+| s7_mlp_classic | ridge | 0.2652 |  | s5_te | rmsle | ridge on the S5 feature set (#29) | output/s7_mlp_classic/ridge |
+| s7_mlp_classic | ridge_no_counts | 0.2662 |  | s5_te | rmsle | ridge_no_counts on the S5 feature set (#33) | output/s7_mlp_classic/ridge_no_counts |
+| s8_external | both | 0.2034 |  | s5_te | rmsle | S5 all_three + both (#21 #22) | output/s8_external/both |
+| s8_external | districts | 0.2035 |  | s5_te | rmsle | S5 all_three + districts (#22) | output/s8_external/districts |
+| s8_external | stations | 0.2032 |  | s5_te | rmsle | S5 all_three + stations (#21) | output/s8_external/stations |

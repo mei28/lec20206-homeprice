@@ -33,7 +33,7 @@ def run(
     stratify_bins: int | None = None,
     holdout_from: Any = None,
 ) -> Path:
-    df = pl.read_csv(train)
+    df = pl.read_csv(train, infer_schema_length=None)
     folds = cv.make_folds(
         df,
         strategy=strategy,

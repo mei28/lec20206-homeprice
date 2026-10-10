@@ -11,27 +11,24 @@ def _():
     import marimo as mo
     import numpy as np
     import polars as pl
-    from scipy.optimize import nnls
-    from sklearn.linear_model import Ridge
 
-    from kgl import cv, lesson, mlit
+    from kgl import cv, ensemble, lesson, mlit
     from kgl.env import comp_dir, detect
     from kgl.io import git_commit, validate_submission, write_submission
     from kgl.metrics import get_metric
 
     return (
-        Ridge,
         asdict,
         comp_dir,
         cv,
         dataclass,
         detect,
+        ensemble,
         get_metric,
         git_commit,
         lesson,
         mlit,
         mo,
-        nnls,
         np,
         pl,
         validate_submission,
@@ -157,21 +154,17 @@ def _(mo):
 
 
 @app.cell
-def _(H, Ridge, cfg, in_q1, nnls, np):
+def _(H, cfg, ensemble, in_q1):
+    # The combiners live in kgl.ensemble (tested); S10 uses the same ones.
     def fit_weights(Hf, yf):
-        weights, _ = nnls(Hf, yf)
-        return weights
+        return ensemble.fit_weights(Hf, yf)
 
     def fit_stack(Hf, yf):
-        return Ridge(alpha=cfg.stacking_alpha).fit(Hf, yf)
+        return ensemble.fit_stacking(Hf, yf, alpha=cfg.stacking_alpha)
 
     def cross_predict(fit, predict, y):
         """Predict Q2 from a combiner fit on Q1 and Q1 from one fit on Q2."""
-        out = np.empty(len(y))
-        for train_rows in (in_q1, ~in_q1):
-            combiner = fit(H[train_rows], y[train_rows])
-            out[~train_rows] = predict(combiner, H[~train_rows])
-        return out
+        return ensemble.cross_predict(H, y, in_q1, fit, predict)
 
     return cross_predict, fit_stack, fit_weights
 

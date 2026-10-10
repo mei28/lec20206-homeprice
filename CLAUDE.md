@@ -5,6 +5,19 @@ Rules for agents working in a competition repository created from
 `~/.claude/skills` hold the procedures (onboard, validation, experiment, submit, journal, research,
 retro); this file holds what is always true here.
 
+## Competition rules for agents
+
+Required by the competition rules (Section 2.6.a and 7.d of utokyo-mlapp-2026-ex1). They bind
+every agent and every human in this repository.
+
+- Never obtain, access, or use real estate transaction data for the test period (2025 Q3 and
+  later), from the MLIT Real Estate Information Library (website or API) or from any other source.
+  This applies to manual and automated access alike: do not fetch, search for, or download it.
+- Other external data (geography, railway stations) is allowed only if it is public, free, and
+  equally available to all participants. Record its source in `docs/competition.md`.
+- Do not share code or predictions outside the team during the competition, and do not
+  redistribute the competition data. `input/` stays gitignored.
+
 ## Layout
 
 | Path | Role |

@@ -1,0 +1,28 @@
+# competition data and run artifacts
+input/*
+!input/.gitkeep
+output/*
+!output/.gitkeep
+
+# local secrets, scratch, and research caches (nvidia-kaggle writes data/*.db)
+.env
+.tmp/
+data/
+
+# python
+.venv/
+__pycache__/
+*.pyc
+.pytest_cache/
+.ruff_cache/
+
+# notebooks: ipynb files are export artifacts of marimo .py sources
+*.ipynb
+
+# trackers
+wandb/
+mlruns/
+
+# kaggle staging
+sub/sub.py
+sub/.last_version

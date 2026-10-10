@@ -1,0 +1,33 @@
+name: Idea
+description: A hypothesis to test. Experiments are recorded as comments; closing is the decision.
+labels: ["idea"]
+body:
+  - type: textarea
+    id: hypothesis
+    attributes:
+      label: Hypothesis
+      description: One sentence. What do we expect to change, and why.
+    validations:
+      required: true
+  - type: textarea
+    id: why
+    attributes:
+      label: Why it might work
+      description: Evidence from EDA, a writeup, a discussion, or an earlier experiment.
+  - type: textarea
+    id: how
+    attributes:
+      label: How to test
+      description: The experiment (base exp, change, Config overrides) and what CV movement would confirm it.
+    validations:
+      required: true
+  - type: input
+    id: effect
+    attributes:
+      label: Expected effect
+      placeholder: "+0.005 accuracy on CV"
+  - type: input
+    id: related
+    attributes:
+      label: Related experiments
+      placeholder: "exp003_te, #12"

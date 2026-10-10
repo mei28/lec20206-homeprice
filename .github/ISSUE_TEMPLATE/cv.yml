@@ -1,0 +1,30 @@
+name: Validation change
+description: Propose a change to the fold design or the CV procedure.
+labels: ["cv"]
+body:
+  - type: input
+    id: current
+    attributes:
+      label: Current folds
+      placeholder: "skf5_seed42"
+    validations:
+      required: true
+  - type: textarea
+    id: problem
+    attributes:
+      label: Problem observed
+      description: CV vs LB gap, group overlap, time order, distribution shift, with numbers.
+    validations:
+      required: true
+  - type: textarea
+    id: change
+    attributes:
+      label: Proposed change
+      description: New strategy, K, stratification, group or time column, and the new fold file name.
+    validations:
+      required: true
+  - type: textarea
+    id: verify
+    attributes:
+      label: How to verify
+      description: Which experiments to rerun on the new folds and what CV vs LB gap would count as success.

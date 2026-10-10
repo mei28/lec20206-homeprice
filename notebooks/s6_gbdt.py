@@ -370,6 +370,34 @@ def _(errors, mlit, pl, train_folded, va_idx):
 
 
 @app.cell
+def _(bias_by_age, correlation, mo, pl, summary):
+    def row(run):
+        return summary.filter(pl.col("run") == run).row(0, named=True)
+
+    def corr(a, b):
+        return correlation.filter(pl.col("model") == a)[b][0]
+
+    cat, xgb_row, age_cat = row("catboost"), row("xgboost"), bias_by_age["catboost"].to_list()
+    mo.md(f"""
+    ## 結果を読む
+
+    - CatBoost は holdout RMSLE {cat["holdout_rmsle"]:.4f} で、LightGBM より {cat["change_vs_lightgbm"]:+.4f}（95% の範囲 {cat["ci_low"]:+.4f}〜{cat["ci_high"]:+.4f}）良くなりました。
+      ここまでの単独モデルで最良です。本数は上限 {5000} 本のうち {cat["best_rounds"]} 本まで改善が続いていたので、本数を増やす余地があります（S10）。
+    - XGBoost は {xgb_row["holdout_rmsle"]:.4f} で、LightGBM より {xgb_row["change_vs_lightgbm"]:+.4f}（{xgb_row["ci_low"]:+.4f}〜{xgb_row["ci_high"]:+.4f}）悪くなりました。
+      設定（深さ8、学習率0.05）は LightGBM に寄せただけで、調整はしていません。同じ GBDT でも、既定に近い設定のままでは差が出ます。
+    - 誤差の相関は、LightGBM と XGBoost で {corr("lightgbm", "xgboost"):.3f}、LightGBM と CatBoost で {corr("lightgbm", "catboost"):.3f}、
+      XGBoost と CatBoost で {corr("xgboost", "catboost"):.3f} です。CatBoost の間違え方がいちばん違い、アンサンブルで効きそうです。
+    - S4 から残っていた築年数によるずれ（新しい物件ほど低め）が、CatBoost ではほぼ消えています（築10年未満 {age_cat[0]:+.3f}、築50年代 {age_cat[-1]:+.3f}）。
+      建築年はカテゴリとして渡しています。CatBoost は、カテゴリの値を目的変数の平均に置き換えて使う仕組み（行の順番をずらして計算する Target encoding）を内部に持っています。
+      そのため、LightGBM より建築年ごとの価格水準を細かく捉えられたと考えられます。
+
+    S6 では単独の最良モデルが LightGBM から CatBoost に替わりました。どのライブラリが合うかはデータによって違うので、
+    同じ特徴量で複数を試して比べる価値があります。
+    """)
+    return
+
+
+@app.cell
 def _(mo):
     mo.md(r"""
     ## 4. 提出ファイルを作る

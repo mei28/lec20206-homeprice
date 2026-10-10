@@ -1,6 +1,7 @@
 import numpy as np
 import pandas as pd
 import polars as pl
+import pytest
 
 from kgl import lesson
 from kgl.env import Env
@@ -53,3 +54,14 @@ def test_fit_lgbm_holdout_stops_early_and_predicts_the_holdout():
     assert 0 < booster.best_iteration < 2000
     assert pred.shape == (500,)
     assert np.sqrt(np.mean((pred - y[va]) ** 2)) < 0.7
+
+
+def test_fit_lgbm_holdout_uses_row_weights():
+    # Two groups with the same feature but different targets: the weighted fit leans to the heavy group.
+    X = pd.DataFrame({"x": np.zeros(400)})
+    y = np.r_[np.zeros(200), np.ones(200)]
+    tr, va = np.arange(400), np.arange(400)
+    params = {"objective": "regression", "learning_rate": 0.5, "num_leaves": 2, "verbose": -1, "num_threads": 1}
+    weight = np.r_[np.full(200, 9.0), np.ones(200)]
+    _, pred = lesson.fit_lgbm_holdout(X, y, tr, va, params, max_rounds=50, early_stopping_rounds=10, weight=weight)
+    assert pred.mean() == pytest.approx(0.1, abs=0.01)

@@ -25,9 +25,14 @@ def fit_lgbm_holdout(
     *,
     max_rounds: int,
     early_stopping_rounds: int,
+    weight: np.ndarray | None = None,
 ) -> tuple[lgb.Booster, np.ndarray]:
-    """Train on `tr_idx`, stop early on `va_idx`, and return the booster with its holdout predictions."""
-    train_set = lgb.Dataset(X.iloc[tr_idx], label=y[tr_idx])
+    """Train on `tr_idx`, stop early on `va_idx`, and return the booster with its holdout predictions.
+
+    `weight` (one value per row of X) weights the training rows; the holdout is always scored unweighted.
+    """
+    train_weight = None if weight is None else weight[tr_idx]
+    train_set = lgb.Dataset(X.iloc[tr_idx], label=y[tr_idx], weight=train_weight)
     valid_set = lgb.Dataset(X.iloc[va_idx], label=y[va_idx], reference=train_set)
     booster = lgb.train(
         params,

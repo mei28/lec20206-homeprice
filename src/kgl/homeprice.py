@@ -77,7 +77,11 @@ def features(
 
 def hedonic_controls(df: pl.DataFrame) -> sp.csr_matrix:
     """Controls for the hedonic price index: ward one-hot, contract-price flag, log area, age, age^2 / 100,
-    station minutes, and missing flags for age and minutes (missing values take the median of `df`)."""
+    station minutes, and missing flags for age and minutes.
+
+    Missing values take the median of `df`. When a column has no known value in `df` (the missing-age
+    segment of a per-segment index), it becomes 0: a constant column carries nothing for the regression.
+    """
     t = mlit.trade_period("取引時期")
     numbers = df.select(
         (pl.col("価格情報区分") == "成約価格情報").cast(pl.Float64).alias("contract"),
@@ -86,8 +90,8 @@ def hedonic_controls(df: pl.DataFrame) -> sp.csr_matrix:
         mlit.station_minutes("最寄駅：距離（分）").alias("minutes"),
     )
     filled = numbers.with_columns(
-        pl.col("age").fill_null(pl.col("age").median()),
-        pl.col("minutes").fill_null(pl.col("minutes").median()),
+        pl.col("age").fill_null(pl.col("age").median()).fill_null(0.0),
+        pl.col("minutes").fill_null(pl.col("minutes").median()).fill_null(0.0),
         pl.col("age").is_null().cast(pl.Float64).alias("age_missing"),
         pl.col("minutes").is_null().cast(pl.Float64).alias("minutes_missing"),
     ).select(

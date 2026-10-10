@@ -79,3 +79,10 @@ def test_hedonic_controls_one_hot_the_ward_and_fill_missing_numbers(raw):
     assert dense[:, 4].tolist() == [11.0, 11.0] and dense[:, 5].tolist() == [1.21, 1.21]
     assert dense[:, 7].tolist() == [0.0, 1.0]
     assert dense[:, 6].tolist() == [5.0, 45.0] and dense[:, 8].tolist() == [0.0, 0.0]
+
+
+def test_hedonic_controls_zero_a_column_with_no_known_value(raw):
+    # The missing-age segment of S4's per-segment index has no known age at all.
+    dense = homeprice.hedonic_controls(raw.with_columns(pl.lit(None, dtype=pl.String).alias("建築年"))).toarray()
+    assert dense[:, 4].tolist() == [0.0, 0.0] and dense[:, 5].tolist() == [0.0, 0.0]
+    assert dense[:, 7].tolist() == [1.0, 1.0]

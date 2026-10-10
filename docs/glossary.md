@@ -35,6 +35,7 @@ Add a row when a new term enters use. The pinned Glossary Issue's body is this f
 | リーク | 予測時点では使えない情報（未来の値、正解）が学習や特徴量に混ざること。CV が実力より良く見える |
 | early stopping | 検証データのスコアが一定回数改善しなくなったところで、木を足すのを止めること。本数を検証データで選ぶので CV がわずかに楽観的になる |
 | refit | 提出用に、検証期間も含めた全期間で学習し直すこと。本 repo では holdout で選んだ本数に行数の比を掛けて使う |
+| ブートストラップ | 行を重複を許して選び直し、スコアを何度も計算してばらつきを見る方法。2つの run の差の 95% の範囲が 0 をまたげば、差は偶然の範囲と読む |
 | 系統的なずれ（bias） | 誤差の平均。0 から離れていると、予測が全体として高め・低めに偏っている。二乗誤差の平均 = ずれの二乗 + ばらつき |
 
 ## Models and experiments
@@ -49,6 +50,7 @@ Add a row when a new term enters use. The pinned Glossary Issue's body is this f
 | run | 1回の学習の記録。`output/<ノートブック名>/<run>/` に `metrics.json` などが残る |
 | 重要度（gain） | LightGBM で、その特徴量による分割が誤差をどれだけ減らしたかの合計 |
 | XGBoost / CatBoost | LightGBM 以外の代表的な GBDT のライブラリ。木の育て方とカテゴリの扱いが違う |
+| count encoding | カテゴリの値ごとの行数を特徴量にする方法。人気や供給量の代わりになる |
 | RandomForest | 深い木を独立に多数育てて平均するモデル（バギング）。ブースティングとは間違え方が違う |
 | Ridge | L2 正則化付きの線形回帰。弱いが木と違い、トレンドを直線で外挿できる |
 | stacking | 各モデルの予測を入力にして、組み合わせ方を別のモデル（メタモデル）に学ばせるアンサンブル |

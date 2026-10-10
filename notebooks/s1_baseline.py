@@ -231,7 +231,8 @@ def _(mo):
 
     目的変数は $\log(1+y)$、損失は二乗誤差（`regression`）です。木の本数は、検証用の行でスコアが 100 回続けて改善しなくなったところで止めます（early stopping）。
 
-    early stopping は検証用の行を見て本数を選ぶので、CV がわずかに楽観的になります。検証用の行が 2 万行以上あるので、その影響は小さいと見なします。
+    early stopping は検証用の行を見て本数を選ぶので、CV がわずかに楽観的になります。
+    2025年第1四半期で本数を選んで第2四半期で測る、という入れ子の確認では最良の本数が変わらず、楽観の幅は 0.0005 未満でした（`docs/reviews/20261010-s1_baseline-leak.md`）。
     """)
     return
 
@@ -322,9 +323,40 @@ def _(by_group, holdout_rows, mo, np, pl):
     - 平均の誤差は、取引価格情報で {survey["mean_log_error"]:+.3f}、成約価格情報で {contract["mean_log_error"]:+.3f}、全体で {bias:+.3f} です。
       価格に直すと、予測は全体で約 {-np.expm1(bias):.0%} 低めです。どちらの区分でも、どちらの四半期でも同じ向きにずれています。
 
-    この系統的なずれは、S0 で見た価格の上昇が原因と考えられます。木のモデルは学習期間（2024年まで）の価格水準までしか予測を出せません。
     仮に平均のずれだけを取り除けたとすると、RMSLE は {debiased:.3f} まで下がる計算です
-    （二乗誤差の平均 = ずれの二乗 + ばらつき、という分解）。この差を埋めるのが S3 の課題です。
+    （二乗誤差の平均 = ずれの二乗 + ばらつき、という分解）。このずれがどこから来るのかを、次のセルで確かめます。
+    """)
+    return
+
+
+@app.cell
+def _(X, booster, mo, np, pd, va_idx, y_log):
+    def holdout_with_quarter(quarter):
+        """Predict the holdout as if every row had been traded in `quarter` (None = missing)."""
+        X_va = X.iloc[va_idx].copy()
+        X_va["取引時期"] = pd.Categorical([quarter] * len(X_va), categories=X["取引時期"].cat.categories)
+        err = booster.predict(X_va, num_iteration=booster.best_iteration) - y_log[va_idx]
+        return float(np.sqrt((err**2).mean())), float(err.mean())
+
+    as_missing = holdout_with_quarter(None)
+    as_last_train_quarter = holdout_with_quarter("2024年第4四半期")
+    mo.md(f"""
+    ### ずれの正体: 学習データにない「取引時期」
+
+    `取引時期` はカテゴリとして渡しています。検証期間の値（`2025年第1四半期`、`2025年第2四半期`）は、学習データに1行もありません。
+    LightGBM は、学習で見たことのないカテゴリを **欠損と同じ扱い** にします。下の表のとおり、検証用の行の取引時期を欠損に置き換えても、
+    予測はまったく変わりません。欠損の扱いは学習の初期（2021年ごろ）の価格水準に寄っており、そのため予測が低めに出ていました。
+
+    | 検証用の行の `取引時期` | holdout RMSLE | 平均のずれ |
+    |---|---|---|
+    | そのまま（学習にない値） | {as_missing[0]:.4f} | {as_missing[1]:+.3f} |
+    | 学習期間の最後（2024年第4四半期）に置き換え | {as_last_train_quarter[0]:.4f} | {as_last_train_quarter[1]:+.3f} |
+
+    最後の学習期間の値を渡すだけで、ずれの大半が消えます。残るずれ（約 {as_last_train_quarter[1]:+.2f}）が、
+    木のモデルが学習期間の価格水準より上を出せないことによる分で、S3 の課題です。
+    S2 では、取引時期を順序のある数値に直してこの問題を解きます（#12）。
+
+    この置き換えは原因を確かめるための実験で、S1 の提出には使いません。S1 は「最小限の変換」の基準として、このまま残します。
     """)
     return
 
@@ -462,7 +494,7 @@ def _(
 ):
     finished = dt.datetime.now().isoformat(timespec="seconds")
     commit = git_commit(env.root)
-    holdout_ids = train_folded[va_idx].select(cfg.id_col, cfg.target, "fold")
+    holdout_ids = train_folded[va_idx].select(cfg.id_col, pl.col(cfg.target).cast(pl.Float64), "fold")
 
     def record(run: str, score: float, pred, config: dict, notes: str):
         out = run_dir(env, EXP, run)
@@ -513,6 +545,7 @@ def _(cv_score, floor_score, mo):
     | `lgbm_raw` | {cv_score:.4f} | 最小限の変換 + log1p + LightGBM |
 
     次の S2 では、この段階で捨てた情報を拾います。駅からの距離のレンジ、建築年から築年数、間取りの中身、取引時期の順序です。
+    なかでも取引時期は、上の実験で学習期間の最後の値を渡しただけで 0.2988 が 0.2108 になったので、最も大きく効く見込みです。
     """)
     return
 

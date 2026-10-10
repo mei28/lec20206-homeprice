@@ -137,6 +137,15 @@ kernel-logs:
 # Notebooks
 # ============================================================
 
+# Run a stage notebook as a script (writes output/<name>/<run>/): just lesson s1_baseline
+lesson name *args:
+  @echo "Running notebooks/{{name}}.py {{args}}..."
+  uv run python notebooks/{{name}}.py {{args}}
+
+# Edit a stage notebook in the browser (marimo)
+lesson-edit name:
+  uv run marimo edit notebooks/{{name}}.py
+
 # Open the EDA notebook (marimo)
 eda:
   uv run marimo edit notebooks/eda.py

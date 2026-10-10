@@ -11,3 +11,10 @@
 | s3_features | plus_layout | 0.2106 |  | s1_baseline | rmsle | rooms and L/D/K/S/R (#11) | output/s3_features/plus_layout |
 | s3_features | plus_notation | 0.2090 |  | s1_baseline | rmsle | station minutes and area parsed (#9) | output/s3_features/plus_notation |
 | s3_features | plus_period | 0.2090 |  | s1_baseline | rmsle | trade period as a number (#12) | output/s3_features/plus_period |
+| s4_trend | hedonic_by_age | 0.2055 |  | s3_features | rmsle | hedonic_by_age (#32) | output/s4_trend/hedonic_by_age |
+| s4_trend | hedonic_by_area | 0.2049 |  | s3_features | rmsle | hedonic_by_area (#32) | output/s4_trend/hedonic_by_area |
+| s4_trend | hedonic_linear | 0.2050 |  | s3_features | rmsle | hedonic_linear (#16) | output/s4_trend/hedonic_linear |
+| s4_trend | hedonic_ppm2 | 0.2048 |  | s3_features | rmsle | hedonic_ppm2 (#15) | output/s4_trend/hedonic_ppm2 |
+| s4_trend | hedonic_recent | 0.2057 |  | s3_features | rmsle | hedonic_recent (#17) | output/s4_trend/hedonic_recent |
+| s4_trend | median_flat | 0.2083 |  | s3_features | rmsle | median_flat (#16) | output/s4_trend/median_flat |
+| s4_trend | median_linear | 0.2047 |  | s3_features | rmsle | median_linear (#16) | output/s4_trend/median_linear |

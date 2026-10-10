@@ -11,7 +11,7 @@ wrap-up when the order or the pending decisions change.
 | Our best public LB | 未提出 |
 | Best public notebook | なし（公開ノートブック0件、2026-10-10） |
 | LB top and medal line | AI単独ベースライン 0.19726（Public）。メダルなし |
-| CV of the current baseline | 単独の最良は S6 CatBoost 0.1990（holdout RMSLE）。S5 LightGBM 0.2035、S4 0.2050、S3 0.2090、S1 0.2988、下限 0.8137。S1 の leak 点検は clean |
+| CV of the current baseline | S9 スタッキング 0.1951（holdout RMSLE）。単独の最良は S6 CatBoost 0.1990。S5 LightGBM 0.2035、S4 0.2050、S3 0.2090、S1 0.2988、下限 0.8137。S1 の leak 点検は clean |
 
 ## 方針（2026-10-10 にユーザーと決定）
 
@@ -42,10 +42,10 @@ wrap-up when the order or the pending decisions change.
 | S4 | `s4_trend.py` | 価格指数と時間トレンド（学習データ内の指数で実質価格化、区分ごとの指数、㎡単価、重み） | #15 #16 #17 #32 | 済（CV 0.2050、ヘドニック指数を採用、未提出） |
 | S5 | `s5_te.py` | Target encoding、集約特徴、件数 | #18 #19 #33 | 済（CV 0.2035、3つ全部を採用、未提出）。特徴量一式は `kgl.feature_set` |
 | S6 | `s6_gbdt.py` | GBDT の比較（LightGBM、XGBoost、CatBoost） | #27 #24 | 済（CatBoost 0.1990、XGBoost 0.2103） |
-| S7 | `s7_mlp_classic.py` | MLP と古典モデル（RandomForest、Ridge） | #20 #28 #29 | 10/16 |
+| S7 | `s7_mlp_classic.py` | MLP と古典モデル（RandomForest、Ridge） | #20 #28 #29 | 済（MLP 0.2168、RF 0.2346、Ridge 0.2652） |
 | S8 | `s8_external.py` | 外部データ（駅、町丁目の座標） | #21 #22 | 済（差は偶然の範囲、不採用） |
-| S9 | `s9_ensemble.py` | アンサンブル（平均、重み付き平均、stacking。ユーザーの希望で stacking は必ず試す） | #23 #30 | 10/18〜19 |
-| S10 | `s10_final.py` | 仕上げ（再学習、seed 平均、最終2提出） | #25 | 10/20〜21 |
+| S9 | `s9_ensemble.py` | アンサンブル（平均、重み付き平均、stacking） | #23 #30 | 済（stacking 0.1951 を採用。単純平均は 0.2054 で単独より悪い） |
+| S10 | `s10_final.py` | 仕上げ（LightGBM の seed 平均、CatBoost の本数、最終のアンサンブル、最終2提出の候補） | #25 | 実行中 |
 
 提出は段階ごとに最大1回で、出すかどうかはユーザーが決める。S1 は「もう少し向上させてから」で見送り（2026-10-10）。提出枠は 10/10〜10/21 の12回。
 
@@ -53,6 +53,6 @@ wrap-up when the order or the pending decisions change.
 
 ## Decisions for the user
 
-- いつ最初の提出をするか。作成・検査済みの提出ファイル: S1 `lgbm_raw`（0.2988）、S3 `plus_notation`（0.2090）、S4 `hedonic_linear`（0.2050）、S5 `all_three`（0.2035）、S6 `catboost`（0.1990）、S6 `xgboost`（0.2103）
+- いつ最初の提出をするか。作成・検査済みの提出ファイル: S1 `lgbm_raw`（0.2988）、S3 `plus_notation`（0.2090）、S4 `hedonic_linear`（0.2050）、S5 `all_three`（0.2035）、S6 `catboost`（0.1990）、S6 `xgboost`（0.2103）、S7 `mlp`（0.2168）ほか、S9 `stacking`（0.1951）・`weighted_average`（0.1960）・`simple_average`（0.2054）
 - S9: stacking は「2025Q1 で fit して Q2 で採点、逆向きも」の方式で進める（2026-10-10、ユーザーの「ガンガン進めていい」を受けて決定）
 - 各段階のディスカッション投稿の有無

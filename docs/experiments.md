@@ -2,6 +2,7 @@
 
 | exp | run | cv | lb | base | metric | note | path |
 |---|---|---|---|---|---|---|---|
+| s10_final | lightgbm_seed_avg | 0.2022 |  | s9_ensemble | rmsle | LightGBM on the S5 feature set, averaged over seeds [42, 7, 2026] (#25) | output/s10_final/lightgbm_seed_avg |
 | s1_baseline | floor_median | 0.8137 |  | none | rmsle | constant training median (#7) | output/s1_baseline/floor_median |
 | s1_baseline | lgbm_raw | 0.2988 |  | none | rmsle | minimal conversion, log1p target (#6, #8) | output/s1_baseline/lgbm_raw |
 | s3_features | drop_extremes | 0.2111 |  | s1_baseline | rmsle | adopted S3 features, extreme price-per-m2 rows dropped from training (#31) | output/s3_features/drop_extremes |
@@ -26,8 +27,13 @@
 | s5_te | te_raw_leak | 0.2039 |  | s4_trend | rmsle | S4 hedonic_linear + te_raw_leak (#18) | output/s5_te/te_raw_leak |
 | s6_gbdt | catboost | 0.1990 |  | s5_te | rmsle | catboost on the S5 feature set (#24) | output/s6_gbdt/catboost |
 | s6_gbdt | xgboost | 0.2103 |  | s5_te | rmsle | xgboost on the S5 feature set (#27) | output/s6_gbdt/xgboost |
+| s7_mlp_classic | mlp | 0.2168 |  | s5_te | rmsle | mlp on the S5 feature set (#20) | output/s7_mlp_classic/mlp |
+| s7_mlp_classic | random_forest | 0.2346 |  | s5_te | rmsle | random_forest on the S5 feature set (#28) | output/s7_mlp_classic/random_forest |
 | s7_mlp_classic | ridge | 0.2652 |  | s5_te | rmsle | ridge on the S5 feature set (#29) | output/s7_mlp_classic/ridge |
 | s7_mlp_classic | ridge_no_counts | 0.2662 |  | s5_te | rmsle | ridge_no_counts on the S5 feature set (#33) | output/s7_mlp_classic/ridge_no_counts |
 | s8_external | both | 0.2034 |  | s5_te | rmsle | S5 all_three + both (#21 #22) | output/s8_external/both |
 | s8_external | districts | 0.2035 |  | s5_te | rmsle | S5 all_three + districts (#22) | output/s8_external/districts |
 | s8_external | stations | 0.2032 |  | s5_te | rmsle | S5 all_three + stations (#21) | output/s8_external/stations |
+| s9_ensemble | simple_average | 0.2054 |  | s7_mlp_classic | rmsle | simple_average of the S5-S7 members (#23, #30) | output/s9_ensemble/simple_average |
+| s9_ensemble | stacking | 0.1951 |  | s7_mlp_classic | rmsle | stacking of the S5-S7 members (#23, #30) | output/s9_ensemble/stacking |
+| s9_ensemble | weighted_average | 0.1960 |  | s7_mlp_classic | rmsle | weighted_average of the S5-S7 members (#23, #30) | output/s9_ensemble/weighted_average |

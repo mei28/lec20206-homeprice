@@ -22,6 +22,7 @@ __pycache__/
 # trackers
 wandb/
 mlruns/
+catboost_info/
 
 # kaggle staging
 sub/sub.py

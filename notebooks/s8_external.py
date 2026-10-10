@@ -280,5 +280,31 @@ def _(env, fs, holdout_ids, holdout_logs, np, pl, results, va_idx):
     return (summary,)
 
 
+@app.cell
+def _(mo, pl, summary):
+    def ci(run):
+        r = summary.filter(pl.col("run") == run).row(0, named=True)
+        return f"{r['holdout_rmsle']:.4f}（S5 との差 {r['change']:+.4f}、95% の範囲 {r['ci_low']:+.4f}〜{r['ci_high']:+.4f}）"
+
+    mo.md(f"""
+    ## 2. 結果を読む
+
+    - 駅の位置と乗降客数（#21）: {ci("stations")}
+    - 地区の位置と東京駅までの距離（#22）: {ci("districts")}
+    - 両方: {ci("both")}
+
+    どれも偶然の範囲で、外部データを足しても良くなりませんでした。
+
+    LightGBM は、地区名・駅名をカテゴリとして持ち、S5 で地区・駅ごとの平均価格（Target encoding）も持っています。
+    学習データにある地区や駅については、その場所の値段の高さをすでに直接知っているので、緯度・経度という間接的な手がかりを足しても上積みがありません。
+    座標が効くのは、学習データにない場所が test に多いとき（このデータでは test にだけある地区は4行、駅は1行）や、
+    場所のカテゴリを扱えない線形モデルのときです。
+
+    外部データは、足せば良くなるとは限りません。モデルがすでに何を知っているかを考えてから選び、効いたかどうかは CV で確かめます。
+    この段階の変更は採用せず、S9 のアンサンブルは S5〜S7 のモデルで組みます（2026-10-10）。
+    """)
+    return
+
+
 if __name__ == "__main__":
     app.run()

@@ -477,7 +477,11 @@ def _(
 def _(dropped_rows, extreme_change, extreme_score, mo):
     mo.md(f"""
     学習期間から {dropped_rows} 行を外すと、holdout RMSLE は {extreme_score:.4f} になりました。
-    採用した構成（`plus_notation`）との差は {extreme_change[0]:+.4f}（95% の範囲 {extreme_change[1]:+.4f}〜{extreme_change[2]:+.4f}）です。
+    採用した構成（`plus_notation`）との差は {extreme_change[0]:+.4f}（95% の範囲 {extreme_change[1]:+.4f}〜{extreme_change[2]:+.4f}）で、悪くなりました。
+
+    holdout にも同じような極端な価格の行があります。学習からそれを外すと、モデルはその価格帯をまったく予測しなくなり、
+    holdout の極端な行での誤差が大きくなります。RMSLE は誤差を二乗するので、その分が全体を押し上げました。
+    学習データの「外れ値」でも、test に同じ種類の行がある限り、捨てると損をすることがあります。この案は採用しません。
     """)
     return
 

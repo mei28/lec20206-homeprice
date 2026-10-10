@@ -31,6 +31,9 @@ Add a row when a new term enters use. The pinned Glossary Issue's body is this f
 | fold -1 / fold 0 | fold ファイルの値。-1 は学習専用の期間、0 は検証期間 |
 | OOF | Out-of-fold prediction。学習に使わなかった fold への予測。本 repo では検証期間（fold 0）の予測 |
 | リーク | 予測時点では使えない情報（未来の値、正解）が学習や特徴量に混ざること。CV が実力より良く見える |
+| early stopping | 検証データのスコアが一定回数改善しなくなったところで、木を足すのを止めること。本数を検証データで選ぶので CV がわずかに楽観的になる |
+| refit | 提出用に、検証期間も含めた全期間で学習し直すこと。本 repo では holdout で選んだ本数に行数の比を掛けて使う |
+| 系統的なずれ（bias） | 誤差の平均。0 から離れていると、予測が全体として高め・低めに偏っている。二乗誤差の平均 = ずれの二乗 + ばらつき |
 
 ## Models and experiments
 
@@ -42,3 +45,5 @@ Add a row when a new term enters use. The pinned Glossary Issue's body is this f
 | TE | Target Encoding。カテゴリごとの目的変数の平均を特徴量にする方法。fold の外で計算するとリークする |
 | アンサンブル | 複数のモデルの予測を平均などで組み合わせること |
 | run | 1回の学習の記録。`output/<ノートブック名>/<run>/` に `metrics.json` などが残る |
+| 重要度（gain） | LightGBM で、その特徴量による分割が誤差をどれだけ減らしたかの合計 |
+| 下限（floor） | 全件に同じ値（学習期間の中央値）を出したときのスコア。モデルのスコアを読む目盛りの端 |

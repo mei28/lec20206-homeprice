@@ -11,7 +11,7 @@ wrap-up when the order or the pending decisions change.
 | Our best public LB | 未提出 |
 | Best public notebook | なし（公開ノートブック0件、2026-10-10） |
 | LB top and medal line | AI単独ベースライン 0.19726（Public）。メダルなし |
-| CV of the current baseline | 未計測 |
+| CV of the current baseline | S1 `lgbm_raw` 0.2988（holdout RMSLE、下限は 0.8137） |
 
 ## 方針（2026-10-10 にユーザーと決定）
 
@@ -26,7 +26,7 @@ wrap-up when the order or the pending decisions change.
 仮説の段階。根拠は `docs/competition.md` の Prior art と `docs/validation.md`。
 
 - 場所（市区町村、地区、駅）。㎡単価の大半を決める。S2 のカテゴリ特徴量、S4 の TE、S6 の座標。
-- 時間トレンドの外挿。検証期間の log1p 価格は学習期間より平均 0.197 高く、木はこれを外挿できない。S3。
+- 時間トレンドの外挿。検証期間の log1p 価格は学習期間より平均 0.197 高く、木はこれを外挿できない。S1 の予測は holdout で平均 -0.182（約 17% 低め）ずれており、このずれだけを除けば 0.2988 → 0.237 の計算（#6、#16）。S3。
 - 価格情報区分の構成のずれ。成約の割合は学習期間 43%、検証期間 62%、test 67%。S2 の区分別の誤差分析。
 
 ## Proposed order
@@ -51,7 +51,7 @@ wrap-up when the order or the pending decisions change.
 
 ## Decisions for the user
 
-- S1 の提出のタイミング（ノートブックができ次第、確認をお願いする）
+- S1 の提出（`output/s1_baseline/lgbm_raw/submission.csv`、holdout 0.2988）を出してよいか
 - S5: MLP のライブラリ（PyTorch か scikit-learn の MLPRegressor）。#20 で決める
 - S6: 使う外部データの出典。#21 #22 で決める
 - 各段階のディスカッション投稿の有無

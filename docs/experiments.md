@@ -2,3 +2,5 @@
 
 | exp | run | cv | lb | base | metric | note | path |
 |---|---|---|---|---|---|---|---|
+| s1_baseline | floor_median | 0.8137 |  | none | rmsle | constant training median (#7) | output/s1_baseline/floor_median |
+| s1_baseline | lgbm_raw | 0.2988 |  | none | rmsle | minimal conversion, log1p target (#6, #8) | output/s1_baseline/lgbm_raw |

@@ -18,3 +18,9 @@
 | s4_trend | hedonic_recent | 0.2057 |  | s3_features | rmsle | hedonic_recent (#17) | output/s4_trend/hedonic_recent |
 | s4_trend | median_flat | 0.2083 |  | s3_features | rmsle | median_flat (#16) | output/s4_trend/median_flat |
 | s4_trend | median_linear | 0.2047 |  | s3_features | rmsle | median_linear (#16) | output/s4_trend/median_linear |
+| s5_te | aggregates | 0.2047 |  | s4_trend | rmsle | S4 hedonic_linear + aggregates (#19) | output/s5_te/aggregates |
+| s5_te | all_three | 0.2035 |  | s4_trend | rmsle | S4 hedonic_linear + all_three (#18 #19 #33) | output/s5_te/all_three |
+| s5_te | counts | 0.2047 |  | s4_trend | rmsle | S4 hedonic_linear + counts (#33) | output/s5_te/counts |
+| s5_te | te | 0.2038 |  | s4_trend | rmsle | S4 hedonic_linear + te (#18) | output/s5_te/te |
+| s5_te | te_in_sample | 0.2042 |  | s4_trend | rmsle | S4 hedonic_linear + te_in_sample (#18) | output/s5_te/te_in_sample |
+| s5_te | te_raw_leak | 0.2039 |  | s4_trend | rmsle | S4 hedonic_linear + te_raw_leak (#18) | output/s5_te/te_raw_leak |

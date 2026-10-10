@@ -48,6 +48,8 @@ Add a row when a new term enters use. The pinned Glossary Issue's body is this f
 | GBDT | 勾配ブースティング決定木。LightGBM など。表データの定番 |
 | MLP | 多層パーセプトロン。全結合層を重ねた素朴なニューラルネット |
 | TE | Target Encoding。カテゴリごとの目的変数の平均を特徴量にする方法。fold の外で計算するとリークする |
+| out-of-fold（TE） | 学習に使う行の TE を、その行を含まない残りの fold から計算すること。自分の答えが特徴量に入らない |
+| 平滑化（TE） | 行の少ないグループの平均を全体の平均に寄せること。本 repo では (合計 + 20 × 全体平均) / (行数 + 20) |
 | アンサンブル | 複数のモデルの予測を平均などで組み合わせること |
 | run | 1回の学習の記録。`output/<ノートブック名>/<run>/` に `metrics.json` などが残る |
 | 重要度（gain） | LightGBM で、その特徴量による分割が誤差をどれだけ減らしたかの合計 |

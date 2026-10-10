@@ -138,9 +138,11 @@ kernel-logs:
 # ============================================================
 
 # Run a stage notebook as a script (writes output/<name>/<run>/): just lesson s1_baseline
+# OMP_WAIT_POLICY=PASSIVE keeps idle OpenMP threads from spinning; when other jobs share the CPU,
+# spinning made XGBoost and LightGBM more than 10x slower here.
 lesson name *args:
   @echo "Running notebooks/{{name}}.py {{args}}..."
-  uv run python notebooks/{{name}}.py {{args}}
+  OMP_WAIT_POLICY=PASSIVE uv run python notebooks/{{name}}.py {{args}}
 
 # Edit a stage notebook in the browser (marimo)
 lesson-edit name:

@@ -18,6 +18,34 @@ every agent and every human in this repository.
 - Do not share code or predictions outside the team during the competition, and do not
   redistribute the competition data. `input/` stays gitignored.
 
+## Lessons: how this repository works
+
+This repository is TA reference material for a university course competition, built like the
+atmaCup beginner lectures: one stage of work per marimo notebook, explanations inside the notebook,
+the public LB raised one stage at a time. It is not an attempt to win. Decided with the user on
+2026-10-10; `docs/roadmap.md` holds the stage list.
+
+- Stages replace `experiments/`. Stage N lives in `notebooks/s{N}_{slug}.py` (marimo) and writes its
+  runs to `output/s{N}_{slug}/<run>/` with `kgl.io` (`metrics.json`, `config.json`, `oof.parquet`,
+  `submission.csv`), so `just submit`, `just exp-table`, and `just record` work unchanged.
+  `experiments/exp000_baseline` is the untouched template and is not used.
+- `metrics.json` `config` must hold `comp`, `id_col`, `sample_sub`, `folds`, and `metric`; `just submit`
+  reads them. `exp` is the notebook stem; `base` is the previous stage's stem.
+- Ideas inside a stage are separate Issues titled `[S{N}] ...`. Each idea is a separate run in the
+  stage's notebook (an ablation against the stage's base run), and its CV goes to its Issue with
+  `just record`. The stage submits once, with the ideas the user accepted.
+- Run a stage as a script with `just lesson s1_baseline`; edit it with `just lesson-edit s1_baseline`.
+  Check it with `uvx marimo check notebooks/<file>.py` before handing it back.
+- Explanations in notebooks are Japanese, written for beginners: what this stage changes, why, what
+  the CV says. Each notebook starts with a short summary of the stage and ends with its results.
+- Submissions: one per stage, and only after the user says yes each time (1 per day; never
+  `just submit --now` on your own). The user decides, per stage, whether to post a summary (text,
+  code excerpts, figures, CV and LB) to the competition Discussion. Full notebooks are published after
+  the deadline.
+- How AI was used is not part of the material.
+- Stage notebooks stay self-contained until two stages need the same code; then it moves into
+  `src/kgl` with a test (Code rules).
+
 ## Layout
 
 | Path | Role |
@@ -27,7 +55,7 @@ every agent and every human in this repository.
 | `src/kgl/` | Shared modules: env, cv, metrics, features, registry, tracker, log, io |
 | `experiments/expNNN_change/` | One experiment: `run.py` (train, OOF, metrics.json) and `infer.py` (submission) |
 | `output/<exp>/<run>/` | Run artifacts: `metrics.json`, `config.json`, `oof.parquet`, `model/`, `run.log`, `submission.csv` |
-| `notebooks/` | marimo `.py` notebooks (EDA); `.ipynb` files are export products |
+| `notebooks/` | marimo `.py` notebooks: the stage notebooks `s{N}_{slug}.py` and the template `eda.py`; `.ipynb` files are export products |
 | `docs/` | `competition.md`, `validation.md`, `experiments.md` (generated), `submissions.md`, `eda.md`, `retro.md`, `roadmap.md` (proposed order, decisions pending), `glossary.md`, `discussions.md` and `notebooks.md` (forum and public-kernel digests by topic) |
 | `docs/explainers/`, `docs/figures/` | Picture explainers (HTML and the PNG `just explainer` renders) and generated figures (`just cv-lb-plot`) |
 | `tools/` | Thin CLIs behind the justfile |
@@ -84,6 +112,7 @@ Defaults for this repository; edit this section to change them. The skills write
 | `just record` comments | English only |
 | Diary comments | Japanese only |
 | `docs/*.md` | Japanese prose under the template's headings |
+| Stage notebooks | Japanese explanations for beginners; code and identifiers in English |
 | Explainers | ELI18: terms of art, formulas, CV numbers, and the limits of the approximation; Japanese with English sub-labels; pictures over text |
 
 - Gloss a project abbreviation the first time it appears in a reply, and add new terms to
@@ -102,6 +131,10 @@ Defaults for this repository; edit this section to change them. The skills write
 - Code that two experiments need moves into `src/kgl` with a test. Until then it stays in `run.py`.
 
 ## Experiment conventions
+
+These describe the template's `experiments/` scripts. In this repository the stage notebooks
+replace them (see "Lessons"); the naming, Config, and run-id rules below apply only if a script
+experiment is added later.
 
 - Name: `exp{NNN}_{change}`. Create with `just new-exp <name> <base>`; the docstring keeps `base:`.
 - Write the hypothesis in the docstring and in the Issue before writing code.

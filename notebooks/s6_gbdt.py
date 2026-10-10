@@ -382,7 +382,7 @@ def _(bias_by_age, correlation, mo, pl, summary):
     ## 結果を読む
 
     - CatBoost は holdout RMSLE {cat["holdout_rmsle"]:.4f} で、LightGBM より {cat["change_vs_lightgbm"]:+.4f}（95% の範囲 {cat["ci_low"]:+.4f}〜{cat["ci_high"]:+.4f}）良くなりました。
-      ここまでの単独モデルで最良です。本数は上限 {5000} 本のうち {cat["best_rounds"]} 本まで改善が続いていたので、本数を増やす余地があります（S10）。
+      ここまでの単独モデルで最良です。最良の本数は {cat["best_rounds"]} 本で、そこから 100 本改善がなかったところで early stopping が止めました（上限 5,000 本には当たっていません。S10 で上限を上げて確かめ、同じ結果でした）。
     - XGBoost は {xgb_row["holdout_rmsle"]:.4f} で、LightGBM より {xgb_row["change_vs_lightgbm"]:+.4f}（{xgb_row["ci_low"]:+.4f}〜{xgb_row["ci_high"]:+.4f}）悪くなりました。
       設定（深さ8、学習率0.05）は LightGBM に寄せただけで、調整はしていません。同じ GBDT でも、既定に近い設定のままでは差が出ます。
     - 誤差の相関は、LightGBM と XGBoost で {corr("lightgbm", "xgboost"):.3f}、LightGBM と CatBoost で {corr("lightgbm", "catboost"):.3f}、

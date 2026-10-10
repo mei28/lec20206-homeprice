@@ -109,3 +109,28 @@ def hedonic_controls(df: pl.DataFrame) -> sp.csr_matrix:
         (np.ones(len(wards)), (np.arange(len(wards)), ward_position)), shape=(len(wards), len(ward_names))
     )
     return sp.hstack([one_hot, sp.csr_matrix(filled.to_numpy())]).tocsr()
+
+
+def count_features(fit_df: pl.DataFrame, apply_df: pl.DataFrame, columns: list[str]) -> pl.DataFrame:
+    """Rows in `fit_df` with the same value, per column (`count_<column>`); 0 for unseen values.
+
+    Missing values are counted as their own value."""
+    out = {}
+    for c in columns:
+        counts = fit_df.group_by(c).len()
+        joined = apply_df.select(c).join(counts, on=c, how="left", nulls_equal=True, maintain_order="left")
+        out[f"count_{c}"] = joined["len"].fill_null(0)
+    return pl.DataFrame(out)
+
+
+def location_aggregates(fit_df: pl.DataFrame, apply_df: pl.DataFrame, key: str, *, prefix: str) -> pl.DataFrame:
+    """Neighbourhood statistics per `key` over `fit_df` (no target): median area, median build year,
+    mean floor-area ratio (容積率, survey rows only), and the share of contract-price rows."""
+    stats = fit_df.group_by(key).agg(
+        mlit.area_m2("面積（㎡）").median().alias(f"{prefix}_median_area"),
+        mlit.build_year("建築年").median().cast(pl.Float64).alias(f"{prefix}_median_build_year"),
+        pl.col("容積率（％）").cast(pl.Float64).mean().alias(f"{prefix}_mean_floor_ratio"),
+        (pl.col("価格情報区分") == "成約価格情報").mean().alias(f"{prefix}_contract_share"),
+    )
+    joined = apply_df.select(key).join(stats, on=key, how="left", nulls_equal=True, maintain_order="left")
+    return joined.drop(key)

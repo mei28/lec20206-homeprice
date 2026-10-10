@@ -220,7 +220,8 @@ def _(cfg, indices, mo, np):
     右で中央値の指数が伸び悩むのは、2025年に成約価格情報（㎡単価が低めの区分）の件数が急に増え、取引された物件の顔ぶれが変わったからです（S0）。
     同じ物件の値段が下がったわけではありません。ヘドニック指数は価格情報区分をそろえて比べるので、この影響を受けません。
 
-    中央値の指数は ㎡単価の水準そのものを表すので、ヘドニック指数とは高さも違います。外挿に使うのは差（伸び）だけなので、高さの違いは結果に影響しません。
+    同じことは2021年第1四半期にも起きています。中央値の指数はこの四半期に急に下がりますが、これは成約価格情報がデータに加わった時期です。
+    物件の値段が下がったのではなく、単価が低めの区分の行が増えただけです。ヘドニック指数は、この時期もなめらかに上がっています。
     """)
     return (slopes,)
 
@@ -434,8 +435,8 @@ def _(mo, pl, summary):
     - 直近8四半期の直線で外挿（`median_linear`）: {ci("median_linear")}。平均のずれが {row("s3 plus_notation")["bias"]:+.3f} から {row("median_linear")["bias"]:+.3f} になりました。
     - ヘドニック指数で外挿（`hedonic_linear`）: {ci("hedonic_linear")}。holdout では中央値の指数とほぼ同じです。
     - 築年数帯・面積帯ごとの指数（#32）: {ci("hedonic_by_age")}、{ci("hedonic_by_area")}。区分ごとに分けると1つの指数あたりの行が減り、伸びの推定がぶれます。全体で1本の指数より良くはなりませんでした。
-    - 目的変数を㎡単価にする（#15）: {ci("hedonic_ppm2")}。
-    - 新しい四半期を重く学習する（#17）: {ci("hedonic_recent")}。指数で水準をそろえたあとは、重みで直近に寄せる必要がなくなりました。
+    - 目的変数を㎡単価にする（#15）: {ci("hedonic_ppm2")}。差は偶然の範囲です。
+    - 新しい四半期を重く学習する（#17）: {ci("hedonic_recent")}。指数で水準をそろえたあとでは、重みを付けても良くなりませんでした。
     """)
     return (row,)
 
@@ -498,7 +499,8 @@ def _(backtest_q2, mo, slopes):
     データで決着がつかないときは、test の条件に照らして理屈で選びます。test では成約価格情報の割合がさらに高く（67%）、
     中央値の指数の伸び（年 {slopes[("all_train", "median")]:+.3f}）は顔ぶれの変化で小さく出ていると考えられます。
     ヘドニック指数（年 {slopes[("all_train", "hedonic")]:+.3f}）は、同じ性質の物件の値動きを測っています。
-    そこで提出にはヘドニック指数を使い、目的変数は㎡単価にします（`hedonic_ppm2`）。
+    そこで提出にはヘドニック指数を使います（`hedonic_linear`）。目的変数を㎡単価にする案（#15）は差が偶然の範囲だったので、単純なほうを選びます。
+    ㎡単価を目的変数にしたモデルは、S9 のアンサンブルで別のメンバーとして使う候補に残します。採用は 2026-10-10 にユーザーと決めました。
 
     この選択は、holdout では確かめられない判断を含みます。最初の LB で、CV との差を確かめる必要があります。
     """)
@@ -510,14 +512,14 @@ def _(mo):
     mo.md(r"""
     ## 5. 残っているずれ
 
-    採用する run（`hedonic_ppm2`）の残差を、S3 と同じ切り口で見ます。
+    採用する run（`hedonic_linear`）の残差を、S3 と同じ切り口で見ます。
     """)
     return
 
 
 @app.cell
 def _(holdout_logs, mlit, pl, train_folded, va_idx, y_log):
-    FINAL = "hedonic_ppm2"
+    FINAL = "hedonic_linear"
     residual_frame = train_folded[va_idx].with_columns(
         residual=pl.Series(holdout_logs[FINAL] - y_log[va_idx]),
         age=mlit.trade_period("取引時期").floor() - mlit.build_year("建築年"),
@@ -587,8 +589,6 @@ def _(
     indices,
     lesson,
     lgb,
-    log_area,
-    log_area_test,
     np,
     pl,
     price_index,
@@ -602,10 +602,8 @@ def _(
     y_log,
 ):
     periods_all, index_all = indices[("all_train", "hedonic")]
-    offset_train = price_index.lookup(periods_all, index_all, t_train[all_rows]) + log_area
-    offset_test = (
-        price_index.extrapolate(periods_all, index_all, t_test, how="linear", k=cfg.trend_quarters) + log_area_test
-    )
+    offset_train = price_index.lookup(periods_all, index_all, t_train[all_rows])
+    offset_test = price_index.extrapolate(periods_all, index_all, t_test, how="linear", k=cfg.trend_quarters)
     refit_rounds = lesson.refit_rounds(boosters[FINAL].best_iteration, n_all=len(y_log), n_train=len(tr_idx))
     refit_booster = lgb.train(
         asdict(cfg.params), lgb.Dataset(X, label=y_log - offset_train), num_boost_round=refit_rounds

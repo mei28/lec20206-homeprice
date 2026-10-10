@@ -54,7 +54,6 @@ wrap-up when the order or the pending decisions change.
 ## Decisions for the user
 
 - いつ最初の提出をするか。作成・検査済みの提出ファイル: S1 `lgbm_raw`（0.2988）、S3 `plus_notation`（0.2090）、S4 `hedonic_linear`（0.2050）
-- 不採用の Issue を close するか: #10、#11、#31（S3）、#15、#17、#32（S4）
 - S7: MLP のライブラリ（PyTorch か scikit-learn の MLPRegressor）。#20 で決める
 - S8: 使う外部データの出典。#21 #22 で決める
 - 各段階のディスカッション投稿の有無

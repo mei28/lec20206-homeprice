@@ -59,7 +59,7 @@ def _(mo):
     | 3 | 建築年を数値にし、築年数（取引年 − 建築年）を足す | #10 |
     | 4 | 間取りから部屋数と L/D/K/S/R の有無を足す | #11 |
 
-    1〜4 は前の変更に積み上げます（累積）。最後に、4 までを入れた状態から1つだけ外す・変える比較を2つします。
+    1〜4 は前の変更に積み上げます（累積）。次に、4 までを入れた状態から1つだけ外す・変える比較を2つします。最後に、S2 で見つけた極端な価格の行を学習から外す案（#31）を試します。
 
     - 価格情報区分を外す（#14）
     - 場所の列（市区町村、地区、駅）をカテゴリではなく整数のコードで渡す（#13）
@@ -255,6 +255,7 @@ def _(
     ]
     results = {}
     boosters = {}
+    holdout_logs = {}
     for _run, _steps, _codes, _compared, _issue, _note in RUNS:
         _X = features(train_folded, _steps, location_codes=_codes)
         _booster, _pred_log = lesson.fit_lgbm_holdout(
@@ -279,6 +280,7 @@ def _(
             "best_iteration": _booster.best_iteration,
         }
         boosters[_run] = _booster
+        holdout_logs[_run] = _pred_log
         lesson.record_run(
             env,
             exp=EXP,
@@ -298,7 +300,7 @@ def _(
             notes=f"{_note} (#{_issue})",
             commit=commit,
         )
-    return boosters, results
+    return boosters, commit, holdout_ids, holdout_logs, results, rmsle
 
 
 @app.cell
@@ -326,20 +328,156 @@ def _(details):
 
 
 @app.cell
-def _(mo, scores):
+def _(mo):
+    mo.md(r"""
+    ### 差は偶然の範囲か
+
+    holdout は約2万行です。行の選ばれ方が少し違うだけでも、RMSLE は 0.001 程度動きえます。そこで、holdout の行を重複を許して選び直す
+    「ブートストラップ」を 2,000 回くり返し、2つの run の RMSLE の差がどの範囲に収まるかを見ます。
+    同じ行を両方の run で使う（ペアにする）ので、行の難しさの違いは打ち消し合います。95% の範囲が 0 をまたいでいれば、差は偶然の範囲と読みます。
+    """)
+    return
+
+
+@app.cell
+def _(env, holdout_ids, holdout_logs, np, pl, results, va_idx, y_log):
+    s1_oof = pl.read_parquet(env.output_dir / "s1_baseline" / "lgbm_raw" / "oof.parquet")
+    # S1 wrote its holdout rows in the same fold order; compare row by row only if the ids line up.
+    assert s1_oof["id"].to_list() == holdout_ids["id"].to_list()
+    s1_log = np.log1p(s1_oof["pred"].to_numpy())
+    squared = {"s1 lgbm_raw": (s1_log - y_log[va_idx]) ** 2} | {
+        name: (pred - y_log[va_idx]) ** 2 for name, pred in holdout_logs.items()
+    }
+    boot_idx = np.random.default_rng(0).integers(0, len(va_idx), size=(2000, len(va_idx)))
+
+    def paired_diff(sq_a, sq_b):
+        """RMSLE(a) - RMSLE(b) on the holdout and its 95% bootstrap range, resampling the same rows for both."""
+        diffs = np.sqrt(sq_a[boot_idx].mean(axis=1)) - np.sqrt(sq_b[boot_idx].mean(axis=1))
+        low, high = np.percentile(diffs, [2.5, 97.5])
+        return float(np.sqrt(sq_a.mean()) - np.sqrt(sq_b.mean())), float(low), float(high)
+
+    bootstrap = pl.DataFrame(
+        [
+            dict(
+                zip(
+                    ("run", "compared_with", "change", "ci_low", "ci_high"),
+                    (r["run"], r["compared_with"], *paired_diff(squared[r["run"]], squared[r["compared_with"]])),
+                    strict=True,
+                )
+            )
+            for r in results.values()
+        ]
+    ).with_columns(within_noise=(pl.col("ci_low") < 0) & (pl.col("ci_high") > 0))
+    bootstrap
+    return bootstrap, paired_diff, squared
+
+
+@app.cell
+def _(bootstrap, mo, pl, scores):
+    def ci(run):
+        row = bootstrap.filter(pl.col("run") == run).row(0, named=True)
+        return f"{row['change']:+.4f}（95% の範囲 {row['ci_low']:+.4f}〜{row['ci_high']:+.4f}）"
+
     mo.md(f"""
-    ## 3. 結果を読む
+    ## 3. 結果を読み、採用する変更を決める
 
-    - 取引時期を数値にする（#12）だけで、holdout RMSLE は {scores["s1 lgbm_raw"]:.4f} から {scores["plus_period"]:.4f} に下がりました。
-      S1 の振り返りで見たとおり、カテゴリのままでは検証期間の四半期が「見たことのない値」になり、2021年ごろの価格水準で予測されていました。
-      数値にすると、検証期間は「学習期間の最後より後ろ」として扱われ、直近の価格水準で予測されます。
-    - 駅距離と面積の表記（#9）: {scores["plus_period"]:.4f} → {scores["plus_notation"]:.4f}。数値に直る行はレンジ表記の駅距離と面積で全体の 0.4% だけなので、差は小さいと予想していました。
-    - 築年数（#10）: {scores["plus_notation"]:.4f} → {scores["plus_age"]:.4f}。
-    - 間取りの分解（#11）: {scores["plus_age"]:.4f} → {scores["plus_layout"]:.4f}。
-    - 価格情報区分を外す（#14）: {scores["plus_layout"]:.4f} → {scores["minus_type"]:.4f}。
-    - 場所を整数コードにする（#13）: {scores["plus_layout"]:.4f} → {scores["location_codes"]:.4f}。
+    - 取引時期を数値にする（#12）: {ci("plus_period")}。holdout RMSLE は {scores["s1 lgbm_raw"]:.4f} から {scores["plus_period"]:.4f} に下がりました。
+      カテゴリのままでは検証期間の四半期が「見たことのない値」になり、2021年ごろの価格水準で予測されていました。
+      数値にすると、検証期間は「学習期間の最後より後ろ」として扱われ、直近の価格水準で予測されます。採用します。
+    - 駅距離と面積の表記（#9）: {ci("plus_notation")}。数値に直る行は全体の 0.4% だけで、差は偶然の範囲です。
+      害はなく、表記の扱いとして正しいので採用します。
+    - 築年数（#10）: {ci("plus_age")}。EDA では築年数と単価のきれいな関係が見えましたが、CV は良くなりませんでした。
+      取引時期が数値になったことで、モデルは「建築年」と「取引時期」の組み合わせから築年数に当たる情報をすでに読み取れます。採用しません。
+    - 間取りの分解（#11）: {ci("plus_layout")}。間取りの49種類のカテゴリがすでに部屋数の情報を持っていました。採用しません。
+    - 価格情報区分を外す（#14）: {ci("minus_type")}。差は偶然の範囲です。区分による誤差の違いを読めるように、S1 と同じく残します。
+    - 場所を整数コードにする（#13）: {ci("location_codes")}。コードにすると「番号が近い場所は似ている」という意味のない順序が入り、はっきり悪くなりました。
+      場所はカテゴリのままにします。
 
-    holdout は約2万行なので、0.001 程度の差は偶然の範囲に入りえます。小さな差を「効いた」と読むときは注意が要ります。
+    EDA で関係が見えても、モデルがすでに同じ情報を別の列から得ていれば、CV は良くなりません。特徴量は、足すたびに CV で確かめます。
+    採用の判断は 2026-10-10 にユーザーと決めました（#12 と #9 を採用）。以降の段階は、この構成（`plus_notation`）を土台にします。
+    """)
+    return
+
+
+@app.cell
+def _(mo):
+    mo.md(r"""
+    ### 極端な価格の行を学習から外す（#31）
+
+    S2 で見つけた、㎡単価が10万円未満または500万円超の行を、学習（2024年まで）からだけ外します。holdout は全行のまま採点するので、スコアはそのまま比べられます。
+    """)
+    return
+
+
+@app.cell
+def _(
+    BASE,
+    EXP,
+    asdict,
+    cfg,
+    commit,
+    env,
+    features,
+    holdout_ids,
+    lesson,
+    mlit,
+    np,
+    paired_diff,
+    pl,
+    rmsle,
+    squared,
+    tr_idx,
+    train_folded,
+    va_idx,
+    y_log,
+):
+    ADOPTED = {"type", "period", "notation"}
+    ppm2 = train_folded.select((pl.col(cfg.target).cast(pl.Float64) / mlit.area_m2("面積（㎡）")).alias("ppm2"))[
+        "ppm2"
+    ].to_numpy()
+    is_extreme = (ppm2 < 1e5) | (ppm2 > 5e6)
+    tr_kept = tr_idx[~is_extreme[tr_idx]]
+    extreme_booster, extreme_log = lesson.fit_lgbm_holdout(
+        features(train_folded, ADOPTED),
+        y_log,
+        tr_kept,
+        va_idx,
+        asdict(cfg.params),
+        max_rounds=cfg.max_rounds,
+        early_stopping_rounds=cfg.early_stopping_rounds,
+    )
+    extreme_score = rmsle(np.expm1(y_log[va_idx]), np.expm1(extreme_log))
+    lesson.record_run(
+        env,
+        exp=EXP,
+        base=BASE,
+        run="drop_extremes",
+        score=extreme_score,
+        metric=cfg.metric,
+        config=asdict(cfg)
+        | {
+            "steps": sorted(ADOPTED),
+            "drop_ppm2_below": 1e5,
+            "drop_ppm2_above": 5e6,
+            "best_iteration": extreme_booster.best_iteration,
+            "refit_rounds": lesson.refit_rounds(extreme_booster.best_iteration, n_all=len(y_log), n_train=len(tr_kept)),
+        },
+        holdout=holdout_ids,
+        pred=np.expm1(extreme_log),
+        notes="adopted S3 features, extreme price-per-m2 rows dropped from training (#31)",
+        commit=commit,
+    )
+    extreme_change = paired_diff((extreme_log - y_log[va_idx]) ** 2, squared["plus_notation"])
+    dropped_rows = int(is_extreme[tr_idx].sum())
+    (dropped_rows, extreme_score, extreme_change)
+    return ADOPTED, dropped_rows, extreme_change, extreme_score
+
+
+@app.cell
+def _(dropped_rows, extreme_change, extreme_score, mo):
+    mo.md(f"""
+    学習期間から {dropped_rows} 行を外すと、holdout RMSLE は {extreme_score:.4f} になりました。
+    採用した構成（`plus_notation`）との差は {extreme_change[0]:+.4f}（95% の範囲 {extreme_change[1]:+.4f}〜{extreme_change[2]:+.4f}）です。
     """)
     return
 
@@ -349,19 +487,15 @@ def _(mo):
     mo.md(r"""
     ## 4. 残っているずれ
 
-    4 までを入れた run（`plus_layout`）の残差を、S2 と同じ切り口で見直します。S1 で大きかった全体の低めのずれが、どこまで減ったかを確かめます。
+    採用した構成（`plus_notation`）の残差を、S2 と同じ切り口で見直します。S1 で大きかった全体の低めのずれが、どこまで減ったかを確かめます。
     """)
     return
 
 
 @app.cell
-def _(boosters, features, mlit, np, pl, train_folded, va_idx, y_log):
-    final_X = features(train_folded, {"type", "period", "notation", "age", "layout"})
-    final_pred_log = boosters["plus_layout"].predict(
-        final_X.iloc[va_idx], num_iteration=boosters["plus_layout"].best_iteration
-    )
+def _(holdout_logs, mlit, pl, train_folded, va_idx, y_log):
     residual_frame = train_folded[va_idx].with_columns(
-        residual=pl.Series(np.asarray(final_pred_log) - y_log[va_idx]),
+        residual=pl.Series(holdout_logs["plus_notation"] - y_log[va_idx]),
         age=mlit.trade_period("取引時期").floor() - mlit.build_year("建築年"),
         area=mlit.area_m2("面積（㎡）"),
     )
@@ -415,7 +549,7 @@ def _(mo):
     mo.md(r"""
     ## 5. 提出ファイルを作る
 
-    4 までを入れた `plus_layout` を、全期間で学習し直して test を予測します。本数は S1 と同じ規則（holdout での本数 × 行数の比）で決めます。
+    採用した構成（`plus_notation`）を、全期間で学習し直して test を予測します。本数は S1 と同じ規則（holdout での本数 × 行数の比）で決めます。
     ここでは提出ファイルを作って検査するところまでで、提出するかどうかは別に決めます。
     """)
     return
@@ -423,6 +557,7 @@ def _(mo):
 
 @app.cell
 def _(
+    ADOPTED,
     EXP,
     asdict,
     boosters,
@@ -441,16 +576,15 @@ def _(
     write_submission,
     y_log,
 ):
-    final_steps = {"type", "period", "notation", "age", "layout"}
-    refit_rounds = lesson.refit_rounds(boosters["plus_layout"].best_iteration, n_all=len(y_log), n_train=len(tr_idx))
+    refit_rounds = lesson.refit_rounds(boosters["plus_notation"].best_iteration, n_all=len(y_log), n_train=len(tr_idx))
     refit_booster = lgb.train(
-        asdict(cfg.params), lgb.Dataset(features(train_folded, final_steps), label=y_log), num_boost_round=refit_rounds
+        asdict(cfg.params), lgb.Dataset(features(train_folded, ADOPTED), label=y_log), num_boost_round=refit_rounds
     )
     submission = pl.DataFrame(
-        {cfg.id_col: test_raw[cfg.id_col], "price": np.expm1(refit_booster.predict(features(test_raw, final_steps)))}
+        {cfg.id_col: test_raw[cfg.id_col], "price": np.expm1(refit_booster.predict(features(test_raw, ADOPTED)))}
     )
     validate_submission(submission, sample, cfg.id_col)
-    submission_path = write_submission(env.output_dir / EXP / "plus_layout", submission)
+    submission_path = write_submission(env.output_dir / EXP / "plus_notation", submission)
     (refit_rounds, str(submission_path))
     return
 

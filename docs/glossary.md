@@ -8,18 +8,37 @@ Add a row when a new term enters use. The pinned Glossary Issue's body is this f
 
 | Term | Meaning |
 |---|---|
+| RMSLE | Root Mean Squared Logarithmic Error。予測と正解をそれぞれ log(1+x) にしてから RMSE を取る。本コンペの評価指標で、小さいほど良い。価格の「比率のずれ」を測る |
+| 目的変数 / target | 予測する値。本コンペでは `取引価格（総額）`（円）。提出ファイルでは列名が `price` |
+| Public / Private LB | 順位表。Public は test の一部で計算され期間中に見える。Private は残りで計算され、最終順位を決める |
+| AI単独ベースライン | 主催者がコーディングエージェント単独で作らせた予測。順位表の `benchmark_AI.csv`（Public 0.19726） |
 
 ## Data
 
 | Term | Meaning |
 |---|---|
+| 不動産取引価格情報 | 国交省が取引当事者へのアンケートで集めた取引価格。2005年から。`価格情報区分` の値の1つ |
+| 成約価格情報 | レインズ（不動産流通機構）の成約情報を国交省が加工したもの。戸建とマンションのみ、2021年から。`価格情報区分` の値の1つ |
+| ㎡単価 | 取引価格 ÷ 面積。物件の広さの違いを除いた価格水準 |
+| 外部データ | 配布データ以外のデータ。公開・無料・全員が同じく入手できるものに限り使える。テスト期間（2025Q3 以降）の取引データは禁止 |
 
 ## Validation
 
 | Term | Meaning |
 |---|---|
+| CV | Cross Validation（交差検証）。手元で学習に使わなかったデータでスコアを測ること。本 repo では時系列 holdout 1つ |
+| 時系列 holdout | 期間で切る検証。2024Q4 までで学習し、2025Q1〜Q2 で検証する（`folds/holdout_2025q1.parquet`） |
+| fold -1 / fold 0 | fold ファイルの値。-1 は学習専用の期間、0 は検証期間 |
+| OOF | Out-of-fold prediction。学習に使わなかった fold への予測。本 repo では検証期間（fold 0）の予測 |
+| リーク | 予測時点では使えない情報（未来の値、正解）が学習や特徴量に混ざること。CV が実力より良く見える |
 
 ## Models and experiments
 
 | Term | Meaning |
 |---|---|
+| 段階（S0〜S8） | 講座の1回分。1段階が1本の marimo ノートブックと1回の提出に対応する（`docs/roadmap.md`） |
+| GBDT | 勾配ブースティング決定木。LightGBM など。表データの定番 |
+| MLP | 多層パーセプトロン。全結合層を重ねた素朴なニューラルネット |
+| TE | Target Encoding。カテゴリごとの目的変数の平均を特徴量にする方法。fold の外で計算するとリークする |
+| アンサンブル | 複数のモデルの予測を平均などで組み合わせること |
+| run | 1回の学習の記録。`output/<ノートブック名>/<run>/` に `metrics.json` などが残る |

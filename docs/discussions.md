@@ -4,9 +4,11 @@ Maintained by the `kaggle-research` skill: what the forum says now, one section 
 finding is merged into its topic, not appended under a date; the dated diff of each check goes to the
 diary. Thread URLs: `https://www.kaggle.com/competitions/<comp>/discussion/<id>`.
 
-<!-- last-checked: never -->
+<!-- last-checked: 2026-10-10 -->
 
 ## Read first
+
+2026-10-10 時点でトピックは0件（`kaggle competitions topics list utokyo-mlapp-2026-ex1`）。類似コンペの知見は `docs/competition.md` の Prior art にある。
 
 ## Host answers
 

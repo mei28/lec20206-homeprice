@@ -6,7 +6,6 @@ app = marimo.App(width="medium")
 
 @app.cell
 def _():
-    import datetime as dt
     from dataclasses import asdict, dataclass, field
 
     import lightgbm as lgb
@@ -17,30 +16,21 @@ def _():
     import polars as pl
     import psutil
 
-    from kgl import cv
-    from kgl.env import comp_dir, detect, run_dir
-    from kgl.io import (
-        Metrics,
-        git_commit,
-        validate_submission,
-        write_config,
-        write_metrics,
-        write_oof,
-        write_submission,
-    )
+    from kgl import cv, lesson
+    from kgl.env import comp_dir, detect
+    from kgl.io import git_commit, validate_submission, write_submission
     from kgl.metrics import get_metric
 
     return (
-        Metrics,
         asdict,
         comp_dir,
         cv,
         dataclass,
         detect,
-        dt,
         field,
         get_metric,
         git_commit,
+        lesson,
         lgb,
         mo,
         np,
@@ -48,11 +38,7 @@ def _():
         pl,
         plt,
         psutil,
-        run_dir,
         validate_submission,
-        write_config,
-        write_metrics,
-        write_oof,
         write_submission,
     )
 
@@ -238,17 +224,16 @@ def _(mo):
 
 
 @app.cell
-def _(X, asdict, cfg, lgb, np, rmsle, tr_idx, va_idx, y_log, y_price):
-    train_set = lgb.Dataset(X.iloc[tr_idx], label=y_log[tr_idx])
-    valid_set = lgb.Dataset(X.iloc[va_idx], label=y_log[va_idx], reference=train_set)
-    booster = lgb.train(
+def _(X, asdict, cfg, lesson, np, rmsle, tr_idx, va_idx, y_log, y_price):
+    booster, oof_log = lesson.fit_lgbm_holdout(
+        X,
+        y_log,
+        tr_idx,
+        va_idx,
         asdict(cfg.params),
-        train_set,
-        num_boost_round=cfg.max_rounds,
-        valid_sets=[valid_set],
-        callbacks=[lgb.early_stopping(cfg.early_stopping_rounds, verbose=False), lgb.log_evaluation(0)],
+        max_rounds=cfg.max_rounds,
+        early_stopping_rounds=cfg.early_stopping_rounds,
     )
-    oof_log = booster.predict(X.iloc[va_idx], num_iteration=booster.best_iteration)
     oof_price = np.expm1(oof_log)
     cv_score = rmsle(y_price[va_idx], oof_price)
     (booster.best_iteration, cv_score)
@@ -444,8 +429,8 @@ def _(mo):
 
 
 @app.cell
-def _(X, X_test, asdict, booster, cfg, lgb, np, test_raw, tr_idx, y_log, pl):
-    refit_rounds = int(round(booster.best_iteration * len(y_log) / len(tr_idx)))
+def _(X, X_test, asdict, booster, cfg, lesson, lgb, np, test_raw, tr_idx, y_log, pl):
+    refit_rounds = lesson.refit_rounds(booster.best_iteration, n_all=len(y_log), n_train=len(tr_idx))
     refit_booster = lgb.train(asdict(cfg.params), lgb.Dataset(X, label=y_log), num_boost_round=refit_rounds)
     test_pred = np.expm1(refit_booster.predict(X_test))
     submission = pl.DataFrame({cfg.id_col: test_raw[cfg.id_col], "price": test_pred})
@@ -468,66 +453,54 @@ def _(mo):
 def _(
     BASE,
     EXP,
-    Metrics,
     asdict,
     booster,
     cfg,
     cv_score,
-    dt,
     env,
     floor_pred,
     floor_score,
     git_commit,
+    lesson,
     oof_price,
     pl,
     refit_rounds,
-    run_dir,
     sample,
     submission,
     train_folded,
     va_idx,
     validate_submission,
-    write_config,
-    write_metrics,
-    write_oof,
     write_submission,
 ):
-    finished = dt.datetime.now().isoformat(timespec="seconds")
     commit = git_commit(env.root)
     holdout_ids = train_folded[va_idx].select(cfg.id_col, pl.col(cfg.target).cast(pl.Float64), "fold")
-
-    def record(run: str, score: float, pred, config: dict, notes: str):
-        out = run_dir(env, EXP, run)
-        write_config(out, config, [])
-        write_oof(out, holdout_ids.with_columns(pl.Series("pred", pred)))
-        write_metrics(
-            out,
-            Metrics(
-                exp=EXP,
-                base=BASE,
-                run=run,
-                cv=score,
-                cv_folds=[score],
-                metric=cfg.metric,
-                config=config,
-                argv=[],
-                git_commit=commit,
-                started_at=finished,
-                finished_at=finished,
-                notes=notes,
-            ),
-        )
-        return out
-
-    floor_dir = record(
-        "floor_median", floor_score, floor_pred, asdict(cfg) | {"model": "median"}, "constant training median (#7)"
+    floor_dir = lesson.record_run(
+        env,
+        exp=EXP,
+        base=BASE,
+        run="floor_median",
+        score=floor_score,
+        metric=cfg.metric,
+        config=asdict(cfg) | {"model": "median"},
+        holdout=holdout_ids,
+        pred=floor_pred,
+        notes="constant training median (#7)",
+        commit=commit,
     )
-    lgbm_config = asdict(cfg) | {
-        "model": "lightgbm",
-        "best_iteration": booster.best_iteration,
-        "refit_rounds": refit_rounds,
-    }
-    lgbm_dir = record("lgbm_raw", cv_score, oof_price, lgbm_config, "minimal conversion, log1p target (#6, #8)")
+    lgbm_dir = lesson.record_run(
+        env,
+        exp=EXP,
+        base=BASE,
+        run="lgbm_raw",
+        score=cv_score,
+        metric=cfg.metric,
+        config=asdict(cfg)
+        | {"model": "lightgbm", "best_iteration": booster.best_iteration, "refit_rounds": refit_rounds},
+        holdout=holdout_ids,
+        pred=oof_price,
+        notes="minimal conversion, log1p target (#6, #8)",
+        commit=commit,
+    )
     validate_submission(submission, sample, cfg.id_col)
     write_submission(lgbm_dir, submission)
     (str(floor_dir), str(lgbm_dir))

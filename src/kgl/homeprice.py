@@ -7,8 +7,10 @@ column keeps S1's conversion. Column order is fixed, because LightGBM's column s
 
 from collections.abc import Iterable
 
+import numpy as np
 import pandas as pd
 import polars as pl
+import scipy.sparse as sp
 
 from kgl import mlit
 
@@ -71,3 +73,35 @@ def features(
 ) -> pd.DataFrame:
     frame, categorical = build_frame(df, steps)
     return to_pandas(frame, categorical, vocab, location_codes=location_codes)
+
+
+def hedonic_controls(df: pl.DataFrame) -> sp.csr_matrix:
+    """Controls for the hedonic price index: ward one-hot, contract-price flag, log area, age, age^2 / 100,
+    station minutes, and missing flags for age and minutes (missing values take the median of `df`)."""
+    t = mlit.trade_period("取引時期")
+    numbers = df.select(
+        (pl.col("価格情報区分") == "成約価格情報").cast(pl.Float64).alias("contract"),
+        mlit.area_m2("面積（㎡）").log().alias("log_area"),
+        (t.floor() - mlit.build_year("建築年")).cast(pl.Float64).alias("age"),
+        mlit.station_minutes("最寄駅：距離（分）").alias("minutes"),
+    )
+    filled = numbers.with_columns(
+        pl.col("age").fill_null(pl.col("age").median()),
+        pl.col("minutes").fill_null(pl.col("minutes").median()),
+        pl.col("age").is_null().cast(pl.Float64).alias("age_missing"),
+        pl.col("minutes").is_null().cast(pl.Float64).alias("minutes_missing"),
+    ).select(
+        "contract",
+        "log_area",
+        "age",
+        (pl.col("age") ** 2 / 100).alias("age_sq"),
+        "minutes",
+        "age_missing",
+        "minutes_missing",
+    )
+    wards = df["市区町村名"].to_numpy()
+    ward_names, ward_position = np.unique(wards, return_inverse=True)
+    one_hot = sp.csr_matrix(
+        (np.ones(len(wards)), (np.arange(len(wards)), ward_position)), shape=(len(wards), len(ward_names))
+    )
+    return sp.hstack([one_hot, sp.csr_matrix(filled.to_numpy())]).tocsr()

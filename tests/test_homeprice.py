@@ -65,3 +65,17 @@ def test_to_pandas_uses_the_vocabulary_and_location_codes(raw):
     codes = homeprice.features(raw, ADOPTED, vocab, location_codes=True)
     assert codes["市区町村名"].tolist() == [0.0, 1.0]
     assert np.isnan(codes["地区名"].iloc[1])
+
+
+def test_hedonic_controls_one_hot_the_ward_and_fill_missing_numbers(raw):
+    controls = homeprice.hedonic_controls(raw.with_columns(pl.Series("建築年", ["2013年", None])))
+    dense = controls.toarray()
+    # columns: wards (港区, 青梅市), contract flag, log area, age, age^2/100, minutes, age missing, minutes missing
+    assert dense.shape == (2, 9)
+    assert dense[:, :2].tolist() == [[1.0, 0.0], [0.0, 1.0]]
+    assert dense[:, 2].tolist() == [1.0, 0.0]
+    assert dense[:, 3] == pytest.approx(np.log([70.0, 2000.0]))
+    # the missing age takes the median of the known ages (11), and its flag is set
+    assert dense[:, 4].tolist() == [11.0, 11.0] and dense[:, 5].tolist() == [1.21, 1.21]
+    assert dense[:, 7].tolist() == [0.0, 1.0]
+    assert dense[:, 6].tolist() == [5.0, 45.0] and dense[:, 8].tolist() == [0.0, 0.0]

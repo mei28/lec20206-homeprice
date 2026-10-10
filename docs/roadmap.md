@@ -11,7 +11,7 @@ wrap-up when the order or the pending decisions change.
 | Our best public LB | 未提出 |
 | Best public notebook | なし（公開ノートブック0件、2026-10-10） |
 | LB top and medal line | AI単独ベースライン 0.19726（Public）。メダルなし |
-| CV of the current baseline | S9 スタッキング 0.1951（holdout RMSLE）。単独の最良は S6 CatBoost 0.1990。S5 LightGBM 0.2035、S4 0.2050、S3 0.2090、S1 0.2988、下限 0.8137。S1 の leak 点検は clean |
+| CV of the current baseline | S10 スタッキング 0.1950（holdout RMSLE）。S9 スタッキング 0.1951。単独の最良は S6 CatBoost 0.1990。S5 LightGBM 0.2035、S4 0.2050、S3 0.2090、S1 0.2988、下限 0.8137。S1 の leak 点検は clean |
 
 ## 方針（2026-10-10 にユーザーと決定）
 
@@ -45,7 +45,7 @@ wrap-up when the order or the pending decisions change.
 | S7 | `s7_mlp_classic.py` | MLP と古典モデル（RandomForest、Ridge） | #20 #28 #29 | 済（MLP 0.2168、RF 0.2346、Ridge 0.2652） |
 | S8 | `s8_external.py` | 外部データ（駅、町丁目の座標） | #21 #22 | 済（差は偶然の範囲、不採用） |
 | S9 | `s9_ensemble.py` | アンサンブル（平均、重み付き平均、stacking） | #23 #30 | 済（stacking 0.1951 を採用。単純平均は 0.2054 で単独より悪い） |
-| S10 | `s10_final.py` | 仕上げ（LightGBM の seed 平均、CatBoost の本数、最終のアンサンブル、最終2提出の候補） | #25 | 実行中 |
+| S10 | `s10_final.py` | 仕上げ（LightGBM の seed 平均、CatBoost の本数、最終のアンサンブル、最終2提出の候補） | #25 | 済（stacking 0.1950、重み付き 0.1959） |
 
 提出は段階ごとに最大1回で、出すかどうかはユーザーが決める。S1 は「もう少し向上させてから」で見送り（2026-10-10）。提出枠は 10/10〜10/21 の12回。
 
@@ -53,6 +53,7 @@ wrap-up when the order or the pending decisions change.
 
 ## Decisions for the user
 
-- いつ最初の提出をするか。作成・検査済みの提出ファイル: S1 `lgbm_raw`（0.2988）、S3 `plus_notation`（0.2090）、S4 `hedonic_linear`（0.2050）、S5 `all_three`（0.2035）、S6 `catboost`（0.1990）、S6 `xgboost`（0.2103）、S7 `mlp`（0.2168）ほか、S9 `stacking`（0.1951）・`weighted_average`（0.1960）・`simple_average`（0.2054）
+- いつ最初の提出をするか。作成・検査済みの提出ファイル: S1 `lgbm_raw`（0.2988）、S3 `plus_notation`（0.2090）、S4 `hedonic_linear`（0.2050）、S5 `all_three`（0.2035）、S6 `catboost`（0.1990）、S6 `xgboost`（0.2103）、S7 `mlp`（0.2168）ほか、S9 `stacking`（0.1951）・`weighted_average`（0.1960）・`simple_average`（0.2054）、S10 `stacking`（0.1950）・`weighted_average`（0.1959）・`lightgbm_seed_avg`（0.2022）・`catboost_long`（0.1990）
+- 最終2提出の候補: S10 `stacking`（CV 最良）と S10 `weighted_average`（重みが0以上で保守的）。どちらも S4 のヘドニック指数の外挿が前提なので、最初の LB で CV との差を確かめる
 - S9: stacking は「2025Q1 で fit して Q2 で採点、逆向きも」の方式で進める（2026-10-10、ユーザーの「ガンガン進めていい」を受けて決定）
 - 各段階のディスカッション投稿の有無

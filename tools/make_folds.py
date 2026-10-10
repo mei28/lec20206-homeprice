@@ -2,11 +2,14 @@
 
 Usage: uv run python tools/make_folds.py skf5_seed42 --strategy StratifiedKFold --target Survived \
            --id-col PassengerId [--group col] [--time-col col] [--stratify-bins 10] [--n-splits 5] [--seed 42]
+       uv run python tools/make_folds.py holdout_2025q1 --strategy TimeHoldout --id-col id \
+           --time-col 取引時期 --holdout-from 2025年第1四半期
 """
 
 import os
 from dataclasses import dataclass
 from pathlib import Path
+from typing import Any
 
 import polars as pl
 import tyro
@@ -28,6 +31,7 @@ def run(
     group: str | None = None,
     time_col: str | None = None,
     stratify_bins: int | None = None,
+    holdout_from: Any = None,
 ) -> Path:
     df = pl.read_csv(train)
     folds = cv.make_folds(
@@ -39,6 +43,7 @@ def run(
         group=group,
         time_col=time_col,
         stratify_bins=stratify_bins,
+        holdout_from=holdout_from,
     )
     meta = {
         "strategy": strategy,
@@ -48,6 +53,7 @@ def run(
         "group": group,
         "time_col": time_col,
         "stratify_bins": stratify_bins,
+        "holdout_from": holdout_from,
         "id_col": id_col,
         "source": str(train),
     }
@@ -64,6 +70,7 @@ class Args:
     group: str | None = None
     time_col: str | None = None
     stratify_bins: int | None = None
+    holdout_from: str | None = None
     n_splits: int = 5
     seed: int = 42
     comp: str = os.environ.get("COMP", "")
@@ -85,6 +92,7 @@ def main(args: Args) -> None:
         group=args.group,
         time_col=args.time_col,
         stratify_bins=args.stratify_bins,
+        holdout_from=args.holdout_from,
     )
     print(out)
 

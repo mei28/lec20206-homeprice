@@ -1,4 +1,5 @@
 import polars as pl
+import pytest
 
 from kgl import cv
 
@@ -124,3 +125,16 @@ def test_check_folds_detects_time_order_violation(frame):
     bad = frame.with_columns(fold=cv.make_folds(frame, strategy="KFold", n_splits=4, seed=0))
     with pytest.raises(AssertionError):
         cv.check_folds(bad, "fold", time_col="time")
+
+
+def test_time_holdout_validates_rows_from_the_cutoff_on(frame):
+    folds = cv.make_folds(frame, strategy="TimeHoldout", n_splits=1, seed=0, time_col="time", holdout_from=150)
+    with_fold = frame.with_columns(fold=folds)
+    assert with_fold.filter(pl.col("fold") == 0)["time"].min() == 150
+    assert with_fold.filter(pl.col("fold") == -1)["time"].max() < 150
+    assert sorted(folds.unique().to_list()) == [-1, 0]
+
+
+def test_time_holdout_requires_the_cutoff(frame):
+    with pytest.raises(ValueError, match="holdout_from"):
+        cv.make_folds(frame, strategy="TimeHoldout", n_splits=1, seed=0, time_col="time")

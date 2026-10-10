@@ -11,6 +11,7 @@ import lightgbm as lgb
 import numpy as np
 import pandas as pd
 import polars as pl
+from catboost import CatBoostRegressor
 
 from kgl.env import Env, run_dir
 from kgl.io import Metrics, write_config, write_metrics, write_oof
@@ -86,3 +87,45 @@ def record_run(
         ),
     )
     return out
+
+
+def _for_catboost(X: pd.DataFrame) -> tuple[pd.DataFrame, list[str]]:
+    """CatBoost takes categories as strings without missing values: missing becomes the string "NA"."""
+    categorical = [c for c in X.columns if isinstance(X[c].dtype, pd.CategoricalDtype)]
+    out = X.copy()
+    for c in categorical:
+        out[c] = out[c].cat.add_categories("NA").fillna("NA").astype(str)
+    return out, categorical
+
+
+def fit_catboost_holdout(
+    X: pd.DataFrame,
+    y: np.ndarray,
+    tr_idx: np.ndarray,
+    va_idx: np.ndarray,
+    params: dict[str, Any],
+    *,
+    max_rounds: int,
+    early_stopping_rounds: int,
+) -> tuple[int, np.ndarray]:
+    """Train CatBoost on `tr_idx`, stop early on `va_idx`; return the rounds used and the holdout predictions."""
+    X_cat, categorical = _for_catboost(X)
+    model = CatBoostRegressor(iterations=max_rounds, od_type="Iter", od_wait=early_stopping_rounds, verbose=0, **params)
+    model.fit(
+        X_cat.iloc[tr_idx],
+        y[tr_idx],
+        cat_features=categorical,
+        eval_set=(X_cat.iloc[va_idx], y[va_idx]),
+        use_best_model=True,
+    )
+    return model.get_best_iteration() + 1, np.asarray(model.predict(X_cat.iloc[va_idx]))
+
+
+def refit_catboost(
+    X: pd.DataFrame, y: np.ndarray, X_test: pd.DataFrame, params: dict[str, Any], *, rounds: int
+) -> np.ndarray:
+    """Train CatBoost on every row of X for `rounds` rounds and predict X_test."""
+    X_cat, categorical = _for_catboost(X)
+    model = CatBoostRegressor(iterations=rounds, verbose=0, **params)
+    model.fit(X_cat, y, cat_features=categorical)
+    return np.asarray(model.predict(_for_catboost(X_test)[0]))

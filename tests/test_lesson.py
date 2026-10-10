@@ -65,3 +65,22 @@ def test_fit_lgbm_holdout_uses_row_weights():
     weight = np.r_[np.full(200, 9.0), np.ones(200)]
     _, pred = lesson.fit_lgbm_holdout(X, y, tr, va, params, max_rounds=50, early_stopping_rounds=10, weight=weight)
     assert pred.mean() == pytest.approx(0.1, abs=0.01)
+
+
+def test_catboost_holdout_and_refit_handle_categories_with_missing_values():
+    rng = np.random.default_rng(0)
+    n = 600
+    X = pd.DataFrame(
+        {
+            "x": rng.normal(size=n),
+            "ward": pd.Categorical(rng.choice(["港区", "青梅市", None], size=n), categories=["港区", "青梅市"]),
+        }
+    )
+    y = 2 * X["x"].to_numpy() + np.where(X["ward"] == "港区", 1.0, 0.0) + rng.normal(scale=0.1, size=n)
+    tr, va = np.arange(450), np.arange(450, n)
+    params = {"learning_rate": 0.2, "depth": 3, "loss_function": "RMSE", "random_seed": 0, "thread_count": 1}
+    rounds, pred = lesson.fit_catboost_holdout(X, y, tr, va, params, max_rounds=300, early_stopping_rounds=20)
+    assert 0 < rounds <= 300
+    assert np.sqrt(np.mean((pred - y[va]) ** 2)) < 0.5
+    test_pred = lesson.refit_catboost(X, y, X.iloc[:5], params, rounds=rounds)
+    assert test_pred.shape == (5,)

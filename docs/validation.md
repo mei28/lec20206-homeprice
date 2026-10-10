@@ -30,7 +30,7 @@ Maintained by the `kaggle-validation` skill. A score is trusted only after this 
 | -1 (train) | 180,632 | 2019Q1〜2024Q4 | 17.423 | 0.728 | 0.428 |
 | 0 (valid) | 21,691 | 2025Q1〜2025Q2 | 17.619 | 0.797 | 0.620 |
 
-検証期間は学習期間より log1p 価格の平均が 0.197 高い（価格水準で約 22% 高い）。時間トレンドを外挿できないモデルは、この差の分だけ低めに予測する。S3（時間トレンド）の論点。
+検証期間は学習期間より log1p 価格の平均が 0.197 高い（価格水準で約 22% 高い）。時間トレンドを外挿できないモデルは、この差の分だけ低めに予測する。S4（時間トレンド）の論点。
 
 ## Leak checklist
 
@@ -39,8 +39,8 @@ S1（`s1_baseline`、2026-10-10）の時点。詳細は `docs/reviews/20261010-s
 | Item | Status | Evidence |
 |---|---|---|
 | Test information in train (joins, global statistics) | ok | カテゴリの語彙だけ train と test の値から作る（目的変数は使わない）。学習行にないカテゴリは欠損と同じ枝に行くので、語彙を train だけで作っても予測は同じ |
-| Statistics fit outside the fold loop (scalers, encoders) | ok | S1 は行単位の変換だけ。S4 の TE と S5 の標準化で再確認する |
-| Target encoding outside folds | ok（S1 時点で TE なし） | S4（#18）で、holdout 用は fold -1 だけから作る |
+| Statistics fit outside the fold loop (scalers, encoders) | ok | S1 は行単位の変換だけ。S5 の TE と S7 の標準化で再確認する |
+| Target encoding outside folds | ok（S1 時点で TE なし） | S5（#18）で、holdout 用は fold -1 だけから作る |
 | Feature selection outside folds | ok | 列は手で選ぶ。重要度は表示だけ |
 | Time leakage (future rows in features, folds not time ordered) | ok | fold は時間順、シャッフルなし。early stopping を holdout で行うことによる楽観は 0.0005 未満（入れ子で確認） |
 | Metric re-implementation matches the competition text | ok | `rmsle` は sklearn の `root_mean_squared_log_error`、手計算のテストあり |
@@ -50,7 +50,7 @@ CV と test の条件の差（リークではないが LB とのずれの要因�
 
 - 予測先の長さ: holdout は学習終了の 1〜2 四半期先、test は 1〜3 四半期先。
 - 成約価格情報の割合: holdout 0.620、test 0.673。
-- S1 では `取引時期` をカテゴリで渡したため、未知の四半期が欠損扱いになり、2021年ごろの水準で予測された。最後の既知四半期に置き換えたときの予測の上がり幅は、holdout モデルで +0.142、提出モデルで +0.174（log）。test のほうがずれが大きく、S1 の LB は CV より悪く出る見込み。S2（#12）で数値に直す。
+- S1 では `取引時期` をカテゴリで渡したため、未知の四半期が欠損扱いになり、2021年ごろの水準で予測された。最後の既知四半期に置き換えたときの予測の上がり幅は、holdout モデルで +0.142、提出モデルで +0.174（log）。test のほうがずれが大きく、S1 の LB は CV より悪く出る見込み。S3（#12）で数値に直す。
 
 ## LB noise
 

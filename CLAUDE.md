@@ -33,16 +33,18 @@ the public LB raised one stage at a time. It is not an attempt to win. Decided w
   reads them. `exp` is the notebook stem; `base` is the previous stage's stem.
 - Ideas inside a stage are separate Issues titled `[S{N}] ...`. Each idea is a separate run in the
   stage's notebook (an ablation against the stage's base run), and its CV goes to its Issue with
-  `just record`. The stage submits once, with the ideas the user accepted.
+  `just record`. A stage submits at most once, with the ideas the user accepted.
 - Run a stage as a script with `just lesson s1_baseline`; edit it with `just lesson-edit s1_baseline`.
   Check it with `uvx marimo check notebooks/<file>.py` before handing it back.
 - Explanations in notebooks are Japanese, written for beginners: what this stage changes, why, what
   the CV says. Each notebook starts with a short summary of the stage and ends with its results.
-- Submissions: one per stage, and only after the user says yes each time (1 per day; never
-  `just submit --now` on your own). The user decides, per stage, whether to post a summary (text,
+- Submissions: at most one per stage, and only when the user says so (1 per day; never
+  `just submit --now` on your own). The user may skip a stage's submission. The user decides, per stage, whether to post a summary (text,
   code excerpts, figures, CV and LB) to the competition Discussion. Full notebooks are published after
   the deadline.
 - How AI was used is not part of the material.
+- Price level over time comes from an index built from the training data (S4, #16), never from
+  external price series: those for 2025 Q3 and later reflect test-period transactions.
 - Stage notebooks stay self-contained until two stages need the same code; then it moves into
   `src/kgl` with a test (Code rules).
 

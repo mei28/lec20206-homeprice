@@ -5,6 +5,8 @@ The finding 5a was reproduced by hand before acting on it (holdout RMSLE 0.2988 
 
 Verdict: clean
 
+Stage numbers below are as of the review. The stages were renumbered later the same day (S2 → S3, S3 → S4); see `docs/roadmap.md`.
+
 学習と検証の間にも、train と test の間にもリークは見つからなかった。CV 0.2988 はリークで良く見えている数字ではない。一方で、`取引時期` をカテゴリとして渡したため、未来の四半期が欠損扱いになっている（5a、medium）。これが CV と test の差を生み、LB は CV より悪く出る見込みが高い。
 
 数値は、notebook と同じ設定でメモリ上で再学習して測った。再学習の結果は記録と一致した。best_iteration は 1,276、holdout は 0.29880、submission.csv との差は log で 0.0。

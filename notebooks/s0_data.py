@@ -75,7 +75,7 @@ def _(TARGET, pl, test_raw, train_raw):
 
     train = train_raw.with_columns(
         price=pl.col(TARGET).cast(pl.Float64),
-        # One row says "2,000㎡以上"; it becomes null here and is handled in S2.
+        # One row says "2,000㎡以上"; it becomes null here and is handled in S3.
         area=pl.col("面積（㎡）").cast(pl.Float64, strict=False),
         t=QUARTER,
     ).with_columns(log1p_price=pl.col("price").log1p(), price_per_m2=pl.col("price") / pl.col("area"))
@@ -340,7 +340,7 @@ def _(holdout, mo, np, train_block, trend):
         価格に直すと約 {np.expm1(gap):.0%} 高い水準です。
 
         ここに、木のモデル（GBDT）の弱点が関わります。木は学習データで見た範囲の値しか出せません。
-        そのため、学習期間より高い価格が続く未来には、低めの予測を出し続けます。これをどう補うかが S3 の論点です。
+        そのため、学習期間より高い価格が続く未来には、低めの予測を出し続けます。これをどう補うかが S4 の論点です。
 
         2つの区分は㎡単価の水準も違います。直近の四半期（{latest["t"][0]:.2f}）では、
         取引価格情報の㎡単価のほうが高く、面積の中央値は小さい傾向があります（表は下）。
@@ -382,7 +382,7 @@ def _(mo, pl, train):
 
                 値は元データの表記のままです。数値に見える列にも文字が混ざっています。
                 たとえば `最寄駅：距離（分）` は、30分までは数字ですが、それより遠いとレンジ（`30分～60分`、`1H～1H30`）で書かれています。
-                このまま扱うと、モデルは「60分は30分より遠い」ことを知りません。S2 で数値に直します。
+                このまま扱うと、モデルは「60分は30分より遠い」ことを知りません。S3 で数値に直します。
                 """
             ),
             non_numeric_distance,
@@ -430,10 +430,10 @@ def _(mo):
     |---|---|
     | RMSLE は log1p した値の RMSE。log1p を目的変数にすれば指標をそのまま最小化できる | S1 |
     | test は train の直後の未来。CV も時系列で切る | S1（時系列 holdout） |
-    | 数値の列にレンジや文字が混ざっている | S2 |
-    | 価格情報区分で埋まっている列も価格水準も違い、test では成約が多い | S2（区分別の誤差を見る） |
-    | 価格は上がり続けており、木のモデルは未来の高い価格を出せない | S3 |
-    | 場所の値は test でもほぼ既知 | S2（カテゴリ）、S4（Target encoding）、S6（座標） |
+    | 数値の列にレンジや文字が混ざっている | S2（EDA）、S3（数値化） |
+    | 価格情報区分で埋まっている列も価格水準も違い、test では成約が多い | S3（区分別の誤差を見る） |
+    | 価格は上がり続けており、木のモデルは未来の高い価格を出せない | S4 |
+    | 場所の値は test でもほぼ既知 | S3（カテゴリ）、S5（Target encoding）、S8（座標） |
     """)
     return
 

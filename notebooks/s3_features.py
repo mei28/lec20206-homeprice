@@ -12,11 +12,10 @@ def _():
     import lightgbm as lgb
     import marimo as mo
     import numpy as np
-    import pandas as pd
     import polars as pl
     import psutil
 
-    from kgl import cv, lesson, mlit
+    from kgl import cv, homeprice, lesson, mlit
     from kgl.env import comp_dir, detect
     from kgl.io import git_commit, validate_submission, write_submission
     from kgl.metrics import get_metric
@@ -30,13 +29,13 @@ def _():
         field,
         get_metric,
         git_commit,
+        homeprice,
         json,
         lesson,
         lgb,
         mlit,
         mo,
         np,
-        pd,
         pl,
         psutil,
         validate_submission,
@@ -127,71 +126,18 @@ def _(mo):
     mo.md(r"""
     ## 1. 特徴量を作る関数
 
-    `steps` に入っている変更だけを S1 の特徴量に加えます。表記の読み取りは `kgl.mlit`（テスト付き、S2 と共通）を使います。
+    `steps` に入っている変更だけを S1 の特徴量に加えます。関数は `kgl.homeprice`（テスト付き、S4 以降と共通）にあり、表記の読み取りには `kgl.mlit`（S2 と共通）を使います。
     カテゴリの語彙は S1 と同じく train と test の値から作ります（目的変数は使いません）。
     """)
     return
 
 
 @app.cell
-def _(mlit, pd, pl, test_raw, train_folded):
-    LOCATION = ["市区町村名", "地区名", "最寄駅：名称"]
-    OTHER_CATEGORICAL = ["間取り", "建物の構造", "用途", "今後の利用目的", "都市計画", "改装", "取引の事情等"]
-
-    def build_frame(df, steps):
-        """Return the feature frame (polars) for the given set of steps."""
-        exprs = [
-            pl.col("建ぺい率（％）").cast(pl.Float64),
-            pl.col("容積率（％）").cast(pl.Float64),
-        ]
-        categorical = LOCATION + OTHER_CATEGORICAL
-        if "type" in steps:
-            categorical = categorical + ["価格情報区分"]
-        if "period" in steps:
-            exprs.append(mlit.trade_period("取引時期").alias("trade_period"))
-        else:
-            categorical = categorical + ["取引時期"]
-        if "notation" in steps:
-            exprs += [
-                mlit.station_minutes("最寄駅：距離（分）").alias("station_minutes"),
-                mlit.area_m2("面積（㎡）").alias("area"),
-            ]
-        else:
-            # S1's conversion: anything that is not a plain number becomes missing.
-            exprs += [
-                pl.col("最寄駅：距離（分）").cast(pl.Float64, strict=False).alias("station_minutes"),
-                pl.col("面積（㎡）").cast(pl.Float64, strict=False).alias("area"),
-            ]
-        if "age" in steps:
-            year = mlit.build_year("建築年")
-            exprs += [
-                year.alias("build_year"),
-                (mlit.trade_period("取引時期").floor() - year).alias("age"),
-            ]
-        else:
-            categorical = categorical + ["建築年"]
-        if "layout" in steps:
-            exprs += [mlit.layout_rooms("間取り").alias("rooms"), *mlit.layout_flags("間取り")]
-        return df.select(exprs + [pl.col(c) for c in categorical]), categorical
-
-    def to_pandas(frame, categorical, vocab, location_codes):
-        """Categories with a fixed vocabulary; with `location_codes`, the location columns become integer codes."""
-        out = frame.to_pandas()
-        for c in categorical:
-            out[c] = pd.Categorical(out[c], categories=vocab[c])
-            if location_codes and c in LOCATION:
-                out[c] = out[c].cat.codes.astype(float).where(lambda codes: codes >= 0)
-        return out
-
-    ALL_CATEGORICAL = LOCATION + OTHER_CATEGORICAL + ["価格情報区分", "取引時期", "建築年"]
-    vocab = {
-        c: sorted(set(train_folded[c].drop_nulls().to_list()) | set(test_raw[c].drop_nulls().to_list()))
-        for c in ALL_CATEGORICAL
-    }
+def _(homeprice, test_raw, train_folded):
+    vocab = homeprice.make_vocab([train_folded, test_raw])
 
     def features(df, steps, location_codes=False):
-        frame, categorical = build_frame(df, steps)
-        return to_pandas(frame, categorical, vocab, location_codes)
+        return homeprice.features(df, steps, vocab, location_codes=location_codes)
 
     return (features,)
 

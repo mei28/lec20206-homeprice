@@ -46,6 +46,15 @@ download comp:
   unzip -o -q input/{{comp}}/{{comp}}.zip -d input/{{comp}}
   ls input/{{comp}}
 
+# Download the external data used from S8 (public, free, CC BY 4.0; sources in docs/competition.md)
+external:
+  @echo "Downloading external data into input/external/..."
+  mkdir -p input/external/s12_2024 input/external/geolonia
+  curl -sSfL -o input/external/s12_2024/S12-25_GML.zip https://nlftp.mlit.go.jp/ksj/gml/data/S12/S12-25/S12-25_GML.zip
+  unzip -o -q input/external/s12_2024/S12-25_GML.zip -d input/external/s12_2024
+  curl -sSfL -o input/external/geolonia/latest.csv https://raw.githubusercontent.com/geolonia/japanese-addresses/master/data/latest.csv
+  ls -R input/external | head -30
+
 # ============================================================
 # Experiments
 # ============================================================

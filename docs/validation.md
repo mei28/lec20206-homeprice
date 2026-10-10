@@ -4,21 +4,33 @@ Maintained by the `kaggle-validation` skill. A score is trusted only after this 
 
 ## How the test set was built
 
+- 時間で分割されている。train は 2019年第1四半期〜2025年第2四半期、test は直後の 2025年第3四半期〜2026年第1四半期（Data タブの説明と、`取引時期` の値域の両方で確認）。
+- 行は並べ替えたうえで `id` を振り直している。`id` の順に意味はない。
+- `価格情報区分` の構成が時期で変わる。成約価格情報は 2021Q1 から現れ、2025Q1 から件数が増える。成約の割合は train 全体で 45%（2024Q4 までに限ると 43%）、2025Q1〜Q2 で 62%、test で 67%。test の 2026Q1 は取引価格情報が 1,487 件と少なく、公表の遅れと見られる。
+- Public と Private の分け方（ランダムか、時期か）は公表されていない。
+
 ## Decision flow result
 
-- Strategy:
-- K:
-- Stratify / group / time column:
-- Reason:
+- Strategy: `TimeHoldout`（時系列 holdout。`kgl.cv` に追加した戦略）
+- K: 1（検証期間は1つ）
+- Stratify / group / time column: time column = `取引時期`、2025年第1四半期以降を検証（fold 0）、それ以前を学習（fold -1）
+- Reason: test は train の直後の未来の期間なので、学習期間より後ろを検証に使う。直近2四半期は `価格情報区分` の構成も test に近い。複数 fold の時系列分割より説明が短く、講座の「CV は test の作り方に合わせる」をそのまま示せる。提出用モデルは全期間で学習し直す（2026-10-10 にユーザーが決定）。
 
 ## Fold file
 
-- `folds/<name>.parquet` (never overwritten; new design = new name)
-- Command:
+- `folds/holdout_2025q1.parquet` (never overwritten; new design = new name)
+- Command: `just folds holdout_2025q1 --strategy TimeHoldout --id-col id --time-col 取引時期 --holdout-from 2025年第1四半期 --n-splits 1`
 
 ## Fold diagnostics
 
-Per-fold size and target distribution; group overlap check; time order check.
+`kgl.cv.check_folds(df, "fold", time_col="取引時期")` は通過（fold 0 の最初の期間が fold -1 の最後の期間より後）。
+
+| fold | rows | period | mean log1p(price) | std log1p(price) | 成約価格情報の割合 |
+|---|---|---|---|---|---|
+| -1 (train) | 180,632 | 2019Q1〜2024Q4 | 17.423 | 0.728 | 0.428 |
+| 0 (valid) | 21,691 | 2025Q1〜2025Q2 | 17.619 | 0.797 | 0.620 |
+
+検証期間は学習期間より log1p 価格の平均が 0.197 高い（価格水準で約 22% 高い）。時間トレンドを外挿できないモデルは、この差の分だけ低めに予測する。S3（時間トレンド）の論点。
 
 ## Leak checklist
 
@@ -32,6 +44,10 @@ Per-fold size and target distribution; group overlap check; time order check.
 | Metric re-implementation matches the competition text | | |
 | Submission id order equals the sample | | |
 
+## LB noise
+
+Public LB の行数は非公開。RMSLE の値は 0.2 前後。最初の数回の提出で CV と LB の差を見てから書く。
+
 ## CV vs LB
 
 | exp | run | cv | public lb | gap | note |
@@ -43,3 +59,4 @@ Per-fold size and target distribution; group overlap check; time order check.
 
 | name | strategy | reason for the new version | date |
 |---|---|---|---|
+| holdout_2025q1 | TimeHoldout (2025Q1〜Q2 を検証) | 最初の設計 | 2026-10-10 |

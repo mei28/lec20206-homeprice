@@ -60,3 +60,8 @@ known-first-party = ["kgl"]
 testpaths = ["tests"]
 pythonpath = ["."]
 addopts = "-q"
+
+[tool.ruff.lint.per-file-ignores]
+# Notebook cells hold Japanese prose (a soft line break inside a Japanese sentence renders as a space),
+# and marimo displays a cell's last bare expression, which B018 would flag.
+"notebooks/*.py" = ["E501", "B018"]

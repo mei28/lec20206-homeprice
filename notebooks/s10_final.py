@@ -50,7 +50,7 @@ def _(mo):
     最後の段階では、新しい特徴量やモデルは足さず、これまでのモデルを仕上げます（#25）。
 
     1. seed 平均: 同じ設定のモデルを乱数の種（seed）だけ変えて何本か学習し、予測を平均する。木の作り方の偶然によるぶれが減る
-    2. CatBoost の本数: S6 では上限 5,000 本の手前（4,796 本）まで改善が続いていたので、上限を上げて学習し直す
+    2. CatBoost の本数: S6 の最良は上限 5,000 本の手前の 4,796 本だったので、上限が効いていたかを確かめるため、上限を上げて学習し直す
     3. 最終のアンサンブル: 1 と 2 の結果を入れて S9 と同じ方法で組み合わせ直し、最終提出の候補を選ぶ
     """)
     return
@@ -239,6 +239,7 @@ def _(mo):
     ## 2. CatBoost の本数の上限を上げる
 
     S6 と同じ設定のまま、本数の上限を 5,000 から 12,000 に上げます。early stopping が止めるところまで学習し、全期間での学習し直しも同じ規則で本数を決めます。
+    S6 の上限が学習を途中で打ち切っていたなら、ここで本数が増えてスコアも変わるはずです。
     """)
     return
 
@@ -424,6 +425,48 @@ def _(
     )
     final_weights
     return (final_weights,)
+
+
+@app.cell
+def _(cat_rounds, cat_score, final_comparison, final_weights, lgbm_avg_score, mo, pl, seed_scores):
+    def row(method):
+        return final_comparison.filter(pl.col("method").str.starts_with(method)).row(0, named=True)
+
+    top = final_weights.sort("stacking_coefficient", descending=True).head(2)
+    mo.md(f"""
+    ## 4. 結果を読む
+
+    - seed 平均: 1本ずつのスコアは {", ".join(f"{v:.4f}" for v in seed_scores.values())} で、3本の予測を平均すると {lgbm_avg_score:.4f} になりました。
+      S5 の1本（seed 42）より -0.0013（95% の範囲 -0.0016〜-0.0009）良く、偶然の範囲を超えています。1本ごとのぶれは 0.0003 程度でも、平均を取ると誤差の一部が打ち消し合います。
+    - CatBoost: 上限を 12,000 本に上げても、最良は {cat_rounds} 本、holdout RMSLE は {cat_score:.4f} で、S6 とまったく同じでした（test の予測も同一）。
+      S6 でも、4,796 本から 100 本改善がなかったところ（4,896 本）で early stopping が止めていて、上限 5,000 本には当たっていませんでした。
+      「上限の手前まで改善が続いていた」という S6 での見立ては誤りで、上限を上げても変わらないことを確かめた形です。
+    - 最終のアンサンブル: スタッキングが {row("stacking")["holdout_rmsle"]:.4f}（単独最良との差 {row("stacking")["change_vs_best_single"]:+.4f}）、
+      重み付き平均が {row("weighted")["holdout_rmsle"]:.4f}、単純平均が {row("simple")["holdout_rmsle"]:.4f} です。
+      S9 のスタッキング（0.1951）との差は -0.0001（95% の範囲 -0.0002〜0.0000）で、seed 平均による LightGBM の改善は、アンサンブルの中ではほとんど吸収されました。
+      スタッキングの係数が大きいのは {", ".join(f"`{m}` {c:.2f}" for m, c in zip(top["member"], top["stacking_coefficient"], strict=True))} です。
+    """)
+    return
+
+
+@app.cell
+def _(mo):
+    mo.md(r"""
+    ## 5. 最終提出の候補
+
+    最終評価に使えるのは2つの提出です。Public と Private の分け方は公表されておらず、holdout（2025年第1〜第2四半期）と test（第3四半期〜2026年第1四半期）の条件も同じではありません。
+    そこで、CV が最も良いものを1つ、仕組みの違う保守的なものを1つ選ぶのが基本です。
+
+    | 候補 | holdout RMSLE | 選ぶ理由 | 不安な点 |
+    |---|---|---|---|
+    | S10 スタッキング（`output/s10_final/stacking/submission.csv`） | 0.1950 | CV が最良 | メタモデルの係数（負の係数を含む）を holdout の約2万行で決めている |
+    | S10 重み付き平均（`output/s10_final/weighted_average/submission.csv`） | 0.1959 | 重みが 0 以上で解釈しやすく、holdout への合わせ込みが小さい | スタッキングより CV が 0.0009 悪い |
+
+    どちらも、価格指数の外挿（S4 でヘドニック指数を選んだこと）を共通の前提にしています。この前提が test で外れていれば、両方そろって外れます。
+    提出して LB を見られるようになったら、まず CV と LB の差でこの前提を確かめ、必要なら2つ目の候補を差し替えます。
+    どれを、いつ提出するかはユーザーが決めます。
+    """)
+    return
 
 
 if __name__ == "__main__":

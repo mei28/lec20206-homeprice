@@ -2,7 +2,11 @@
 
 | exp | run | cv | lb | base | metric | note | path |
 |---|---|---|---|---|---|---|---|
+| s10_final | catboost_long | 0.1990 |  | s9_ensemble | rmsle | CatBoost with up to 12000 rounds (#25) | output/s10_final/catboost_long |
 | s10_final | lightgbm_seed_avg | 0.2022 |  | s9_ensemble | rmsle | LightGBM on the S5 feature set, averaged over seeds [42, 7, 2026] (#25) | output/s10_final/lightgbm_seed_avg |
+| s10_final | simple_average | 0.2055 |  | s9_ensemble | rmsle | final simple_average (#25) | output/s10_final/simple_average |
+| s10_final | stacking | 0.1950 |  | s9_ensemble | rmsle | final stacking (#25) | output/s10_final/stacking |
+| s10_final | weighted_average | 0.1959 |  | s9_ensemble | rmsle | final weighted_average (#25) | output/s10_final/weighted_average |
 | s1_baseline | floor_median | 0.8137 |  | none | rmsle | constant training median (#7) | output/s1_baseline/floor_median |
 | s1_baseline | lgbm_raw | 0.2988 |  | none | rmsle | minimal conversion, log1p target (#6, #8) | output/s1_baseline/lgbm_raw |
 | s3_features | drop_extremes | 0.2111 |  | s1_baseline | rmsle | adopted S3 features, extreme price-per-m2 rows dropped from training (#31) | output/s3_features/drop_extremes |
@@ -10,7 +14,7 @@
 | s3_features | minus_type | 0.2107 |  | s1_baseline | rmsle | without 価格情報区分 (#14) | output/s3_features/minus_type |
 | s3_features | plus_age | 0.2099 |  | s1_baseline | rmsle | build year as a number, age (#10) | output/s3_features/plus_age |
 | s3_features | plus_layout | 0.2106 |  | s1_baseline | rmsle | rooms and L/D/K/S/R (#11) | output/s3_features/plus_layout |
-| s3_features | plus_notation | 0.2090 |  | s1_baseline | rmsle | station minutes and area parsed (#9) | output/s3_features/plus_notation |
+| s3_features | plus_notation | 0.2090 | 0.20149 | s1_baseline | rmsle | station minutes and area parsed (#9) | output/s3_features/plus_notation |
 | s3_features | plus_period | 0.2090 |  | s1_baseline | rmsle | trade period as a number (#12) | output/s3_features/plus_period |
 | s4_trend | hedonic_by_age | 0.2055 |  | s3_features | rmsle | hedonic_by_age (#32) | output/s4_trend/hedonic_by_age |
 | s4_trend | hedonic_by_area | 0.2049 |  | s3_features | rmsle | hedonic_by_area (#32) | output/s4_trend/hedonic_by_area |

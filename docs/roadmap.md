@@ -8,9 +8,9 @@ wrap-up when the order or the pending decisions change.
 
 | Item | Value |
 |---|---|
-| Our best public LB | 0.19911（S4 `hedonic_linear`、2026-10-11、CV 0.2050）。S3 は 0.20149 |
+| Our best public LB | 0.19895（S5 `all_three`、2026-10-14、CV 0.2035）。S4 は 0.19911、S3 は 0.20149 |
 | Best public notebook | なし（公開ノートブック0件、2026-10-10） |
-| LB top and medal line | AI単独ベースライン 0.19726（Public、1位）。S4 で2位、学生チームの上位は 0.20222 と 0.20276（2026-10-11）。メダルなし |
+| LB top and medal line | AI単独ベースライン 0.19726（Public、1位）。S5 で2位、学生チームの上位は 0.19914 と 0.19920（2026-10-14）。メダルなし |
 | CV of the current baseline | S10 スタッキング 0.1950（holdout RMSLE）。S9 スタッキング 0.1951。単独の最良は S6 CatBoost 0.1990。S5 LightGBM 0.2035、S4 0.2050、S3 0.2090、S1 0.2988、下限 0.8137。S1 の leak 点検は clean |
 
 ## 方針（2026-10-10 にユーザーと決定）
@@ -40,7 +40,7 @@ wrap-up when the order or the pending decisions change.
 | S2 | `s2_eda.py` | 特徴量づくりのための EDA（提出なし） | #26 | 済 |
 | S3 | `s3_features.py` | 前処理と特徴量 | #9 #10 #11 #12 #13 #14 #31 | 済（CV 0.2090、#12 #9 採用、提出 LB 0.20149） |
 | S4 | `s4_trend.py` | 価格指数と時間トレンド（学習データ内の指数で実質価格化、区分ごとの指数、㎡単価、重み） | #15 #16 #17 #32 | 済（CV 0.2050、ヘドニック指数を採用、提出 LB 0.19911） |
-| S5 | `s5_te.py` | Target encoding、集約特徴、件数 | #18 #19 #33 | 済（CV 0.2035、3つ全部を採用、未提出）。特徴量一式は `kgl.feature_set` |
+| S5 | `s5_te.py` | Target encoding、集約特徴、件数 | #18 #19 #33 | 済（CV 0.2035、3つ全部を採用、提出 LB 0.19895）。特徴量一式は `kgl.feature_set` |
 | S6 | `s6_gbdt.py` | GBDT の比較（LightGBM、XGBoost、CatBoost） | #27 #24 | 済（CatBoost 0.1990、XGBoost 0.2103） |
 | S7 | `s7_mlp_classic.py` | MLP と古典モデル（RandomForest、Ridge） | #20 #28 #29 | 済（MLP 0.2168、RF 0.2346、Ridge 0.2652） |
 | S8 | `s8_external.py` | 外部データ（駅、町丁目の座標） | #21 #22 | 済（差は偶然の範囲、不採用） |
@@ -53,7 +53,7 @@ wrap-up when the order or the pending decisions change.
 
 ## Decisions for the user
 
-- 次の提出をいつ、どれにするか（S3 は 2026-10-10、S4 は 2026-10-11 に提出済み。段階の順なら次は S5 `all_three`）。作成・検査済みの提出ファイル: S1 `lgbm_raw`（0.2988）、S3 `plus_notation`（0.2090）、S4 `hedonic_linear`（0.2050）、S5 `all_three`（0.2035）、S6 `catboost`（0.1990）、S6 `xgboost`（0.2103）、S7 `mlp`（0.2168）ほか、S9 `stacking`（0.1951）・`weighted_average`（0.1960）・`simple_average`（0.2054）、S10 `stacking`（0.1950）・`weighted_average`（0.1959）・`lightgbm_seed_avg`（0.2022）・`catboost_long`（0.1990）
+- 次の提出をいつ、どれにするか（S3 は 2026-10-10、S4 は 2026-10-11、S5 は 2026-10-14 に提出済み。段階の順なら次は S6 `catboost`）。作成・検査済みの提出ファイル: S1 `lgbm_raw`（0.2988）、S3 `plus_notation`（0.2090）、S4 `hedonic_linear`（0.2050）、S5 `all_three`（0.2035）、S6 `catboost`（0.1990）、S6 `xgboost`（0.2103）、S7 `mlp`（0.2168）ほか、S9 `stacking`（0.1951）・`weighted_average`（0.1960）・`simple_average`（0.2054）、S10 `stacking`（0.1950）・`weighted_average`（0.1959）・`lightgbm_seed_avg`（0.2022）・`catboost_long`（0.1990）
 - 最終2提出の候補: S10 `stacking`（CV 最良）と S10 `weighted_average`（重みが0以上で保守的）。どちらも S4 のヘドニック指数の外挿が前提。S4 の提出で CV と LB は同じ向きに動いた（CV -0.0040、LB -0.0024、#3）
 - S9: stacking は「2025Q1 で fit して Q2 で採点、逆向きも」の方式で進める（2026-10-10、ユーザーの「ガンガン進めていい」を受けて決定）
 - 各段階のディスカッション投稿の有無

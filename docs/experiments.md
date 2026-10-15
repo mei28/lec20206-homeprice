@@ -7,6 +7,14 @@
 | s10_final | simple_average | 0.2055 |  | s9_ensemble | rmsle | final simple_average (#25) | output/s10_final/simple_average |
 | s10_final | stacking | 0.1950 |  | s9_ensemble | rmsle | final stacking (#25) | output/s10_final/stacking |
 | s10_final | weighted_average | 0.1959 |  | s9_ensemble | rmsle | final weighted_average (#25) | output/s10_final/weighted_average |
+| s11_pseudo | catboost_w1 | 0.1966 |  | s10_final | rmsle | LightGBM student, pseudo labels from catboost (#34) | output/s11_pseudo/catboost_w1 |
+| s11_pseudo | stack_catboost_w1 | 0.1950 |  | s10_final | rmsle | S10 stacking with LightGBM replaced by the catboost_w1 student (#34) | output/s11_pseudo/stack_catboost_w1 |
+| s11_pseudo | stack_stacking_confident | 0.1951 |  | s10_final | rmsle | S10 stacking with LightGBM replaced by the stacking_confident student (#34) | output/s11_pseudo/stack_stacking_confident |
+| s11_pseudo | stack_stacking_w05 | 0.1950 |  | s10_final | rmsle | S10 stacking with LightGBM replaced by the stacking_w05 student (#34) | output/s11_pseudo/stack_stacking_w05 |
+| s11_pseudo | stack_stacking_w1 | 0.1951 |  | s10_final | rmsle | S10 stacking with LightGBM replaced by the stacking_w1 student (#34) | output/s11_pseudo/stack_stacking_w1 |
+| s11_pseudo | stacking_confident | 0.2000 |  | s10_final | rmsle | LightGBM student, pseudo labels from stacking (#34) | output/s11_pseudo/stacking_confident |
+| s11_pseudo | stacking_w05 | 0.1985 |  | s10_final | rmsle | LightGBM student, pseudo labels from stacking (#34) | output/s11_pseudo/stacking_w05 |
+| s11_pseudo | stacking_w1 | 0.1972 |  | s10_final | rmsle | LightGBM student, pseudo labels from stacking (#34) | output/s11_pseudo/stacking_w1 |
 | s1_baseline | floor_median | 0.8137 |  | none | rmsle | constant training median (#7) | output/s1_baseline/floor_median |
 | s1_baseline | lgbm_raw | 0.2988 |  | none | rmsle | minimal conversion, log1p target (#6, #8) | output/s1_baseline/lgbm_raw |
 | s3_features | drop_extremes | 0.2111 |  | s1_baseline | rmsle | adopted S3 features, extreme price-per-m2 rows dropped from training (#31) | output/s3_features/drop_extremes |
@@ -18,18 +26,18 @@
 | s3_features | plus_period | 0.2090 |  | s1_baseline | rmsle | trade period as a number (#12) | output/s3_features/plus_period |
 | s4_trend | hedonic_by_age | 0.2055 |  | s3_features | rmsle | hedonic_by_age (#32) | output/s4_trend/hedonic_by_age |
 | s4_trend | hedonic_by_area | 0.2049 |  | s3_features | rmsle | hedonic_by_area (#32) | output/s4_trend/hedonic_by_area |
-| s4_trend | hedonic_linear | 0.2050 |  | s3_features | rmsle | hedonic_linear (#16) | output/s4_trend/hedonic_linear |
+| s4_trend | hedonic_linear | 0.2050 | 0.19911 | s3_features | rmsle | hedonic_linear (#16) | output/s4_trend/hedonic_linear |
 | s4_trend | hedonic_ppm2 | 0.2048 |  | s3_features | rmsle | hedonic_ppm2 (#15) | output/s4_trend/hedonic_ppm2 |
 | s4_trend | hedonic_recent | 0.2057 |  | s3_features | rmsle | hedonic_recent (#17) | output/s4_trend/hedonic_recent |
 | s4_trend | median_flat | 0.2083 |  | s3_features | rmsle | median_flat (#16) | output/s4_trend/median_flat |
 | s4_trend | median_linear | 0.2047 |  | s3_features | rmsle | median_linear (#16) | output/s4_trend/median_linear |
 | s5_te | aggregates | 0.2047 |  | s4_trend | rmsle | S4 hedonic_linear + aggregates (#19) | output/s5_te/aggregates |
-| s5_te | all_three | 0.2035 |  | s4_trend | rmsle | S4 hedonic_linear + all_three (#18 #19 #33) | output/s5_te/all_three |
+| s5_te | all_three | 0.2035 | 0.19895 | s4_trend | rmsle | S4 hedonic_linear + all_three (#18 #19 #33) | output/s5_te/all_three |
 | s5_te | counts | 0.2047 |  | s4_trend | rmsle | S4 hedonic_linear + counts (#33) | output/s5_te/counts |
 | s5_te | te | 0.2038 |  | s4_trend | rmsle | S4 hedonic_linear + te (#18) | output/s5_te/te |
 | s5_te | te_in_sample | 0.2042 |  | s4_trend | rmsle | S4 hedonic_linear + te_in_sample (#18) | output/s5_te/te_in_sample |
 | s5_te | te_raw_leak | 0.2039 |  | s4_trend | rmsle | S4 hedonic_linear + te_raw_leak (#18) | output/s5_te/te_raw_leak |
-| s6_gbdt | catboost | 0.1990 |  | s5_te | rmsle | catboost on the S5 feature set (#24) | output/s6_gbdt/catboost |
+| s6_gbdt | catboost | 0.1990 | 0.19642 | s5_te | rmsle | catboost on the S5 feature set (#24) | output/s6_gbdt/catboost |
 | s6_gbdt | xgboost | 0.2103 |  | s5_te | rmsle | xgboost on the S5 feature set (#27) | output/s6_gbdt/xgboost |
 | s7_mlp_classic | mlp | 0.2168 |  | s5_te | rmsle | mlp on the S5 feature set (#20) | output/s7_mlp_classic/mlp |
 | s7_mlp_classic | random_forest | 0.2346 |  | s5_te | rmsle | random_forest on the S5 feature set (#28) | output/s7_mlp_classic/random_forest |

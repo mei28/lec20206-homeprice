@@ -15,6 +15,11 @@
 | s11_pseudo | stacking_confident | 0.2000 |  | s10_final | rmsle | LightGBM student, pseudo labels from stacking (#34) | output/s11_pseudo/stacking_confident |
 | s11_pseudo | stacking_w05 | 0.1985 |  | s10_final | rmsle | LightGBM student, pseudo labels from stacking (#34) | output/s11_pseudo/stacking_w05 |
 | s11_pseudo | stacking_w1 | 0.1972 |  | s10_final | rmsle | LightGBM student, pseudo labels from stacking (#34) | output/s11_pseudo/stacking_w1 |
+| s12_black_magic | lgbm | 0.1940 |  | s10_final | rmsle | lgbm stacker on the S10 members (#35) | output/s12_black_magic/lgbm |
+| s12_black_magic | lgbm_preds_only | 0.1944 |  | s10_final | rmsle | lgbm_preds_only stacker on the S10 members (#35) | output/s12_black_magic/lgbm_preds_only |
+| s12_black_magic | mlp | 0.1942 |  | s10_final | rmsle | mlp stacker on the S10 members (#35) | output/s12_black_magic/mlp |
+| s12_black_magic | ridge_by_type | 0.1951 |  | s10_final | rmsle | ridge_by_type stacker on the S10 members (#35) | output/s12_black_magic/ridge_by_type |
+| s12_black_magic | stacker_average | 0.1938 |  | s10_final | rmsle | stacker_average stacker on the S10 members (#35) | output/s12_black_magic/stacker_average |
 | s1_baseline | floor_median | 0.8137 |  | none | rmsle | constant training median (#7) | output/s1_baseline/floor_median |
 | s1_baseline | lgbm_raw | 0.2988 |  | none | rmsle | minimal conversion, log1p target (#6, #8) | output/s1_baseline/lgbm_raw |
 | s3_features | drop_extremes | 0.2111 |  | s1_baseline | rmsle | adopted S3 features, extreme price-per-m2 rows dropped from training (#31) | output/s3_features/drop_extremes |

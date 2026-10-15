@@ -62,4 +62,5 @@ Add a row when a new term enters use. The pinned Glossary Issue's body is this f
 | stacking | 各モデルの予測を入力にして、組み合わせ方を別のモデル（メタモデル）に学ばせるアンサンブル |
 | pseudo label | モデルが test に出した予測を仮の正解として、test の行を学習データに足すこと。予測を作るモデルを教師、足して学習するモデルを生徒と呼ぶ（S11、#34） |
 | 蒸留（distillation） | 強いモデル（教師）の予測を正解の代わりにして、別のモデル（生徒）に写すこと |
+| 黒魔術（NN stacking） | Kaggle で、NN などの非線形モデルで行うスタッキングの俗称。手順が複雑で過学習しやすい。S12 では MLP と LightGBM のスタッキングと、その平均を試した（#35） |
 | 下限（floor） | 全件に同じ値（学習期間の中央値）を出したときのスコア。モデルのスコアを読む目盛りの端 |

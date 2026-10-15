@@ -47,6 +47,7 @@ wrap-up when the order or the pending decisions change.
 | S9 | `s9_ensemble.py` | アンサンブル（平均、重み付き平均、stacking） | #23 #30 | 済（stacking 0.1951 を採用。単純平均は 0.2054 で単独より悪い） |
 | S10 | `s10_final.py` | 仕上げ（LightGBM の seed 平均、CatBoost の本数、最終のアンサンブル、最終2提出の候補） | #25 | 済（stacking 0.1950、重み付き 0.1959） |
 | S11 | `s11_pseudo.py` | pseudo label（S10 の予測を test の仮の正解にして LightGBM を学習し直す） | #34 | 済（生徒単独は S5 より -0.0063〜-0.0069 だが、S5 と教師の単純な平均と同じ。スタッキングに戻すと差なし、不採用） |
+| S12 | `s12_black_magic.py` | 黒魔術（MLP・LightGBM のスタッキングと、スタッキングの平均。俵さんの記事にならう） | #35 | 済（スタッキングの平均 0.1938、S10 より -0.0012。採用し、最終提出の候補に追加） |
 
 提出は段階ごとに最大1回で、出すかどうかはユーザーが決める。S1 は「もう少し向上させてから」で見送り（2026-10-10）。提出枠は 10/10〜10/21 の12回。最初から最良を出さず、段階の順に1日1回ずつ少しずつ出す（2026-10-11 ユーザー）。
 
@@ -55,6 +56,6 @@ wrap-up when the order or the pending decisions change.
 ## Decisions for the user
 
 - 次の提出をいつ、どれにするか（S3 は 2026-10-10、S4 は 2026-10-11、S5 は 2026-10-14、S6 は 2026-10-15 に提出済み。段階の順なら次は S9 か S10 のアンサンブル）。作成・検査済みの提出ファイル: S1 `lgbm_raw`（0.2988）、S3 `plus_notation`（0.2090）、S4 `hedonic_linear`（0.2050）、S5 `all_three`（0.2035）、S6 `catboost`（0.1990）、S6 `xgboost`（0.2103）、S7 `mlp`（0.2168）ほか、S9 `stacking`（0.1951）・`weighted_average`（0.1960）・`simple_average`（0.2054）、S10 `stacking`（0.1950）・`weighted_average`（0.1959）・`lightgbm_seed_avg`（0.2022）・`catboost_long`（0.1990）
-- 最終2提出の候補: S10 `stacking`（CV 最良）と S10 `weighted_average`（重みが0以上で保守的）。どちらも S4 のヘドニック指数の外挿が前提。S4 の提出で CV と LB は同じ向きに動いた（CV -0.0040、LB -0.0024、#3）
+- 最終2提出の候補: S12 `stacker_average`（CV 0.1938、最良）、S10 `stacking`（0.1950）、S10 `weighted_average`（0.1959、重みが0以上で保守的）。どちらも S4 のヘドニック指数の外挿が前提。S4 の提出で CV と LB は同じ向きに動いた（CV -0.0040、LB -0.0024、#3）
 - S9: stacking は「2025Q1 で fit して Q2 で採点、逆向きも」の方式で進める（2026-10-10、ユーザーの「ガンガン進めていい」を受けて決定）
 - 各段階のディスカッション投稿の有無

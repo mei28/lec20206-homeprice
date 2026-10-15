@@ -18,6 +18,7 @@ __pycache__/
 
 # notebooks: ipynb files are export artifacts of marimo .py sources
 *.ipynb
+__marimo__/
 
 # trackers
 wandb/

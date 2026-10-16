@@ -88,3 +88,45 @@ def test_lgbm_stacker_without_rows_cannot_use_the_row_feature(stacked_rows):
     assert without.num_feature() == N_MEMBERS + 1
     pred = stacking.predict_lgbm(without, Z, n_members=N_MEMBERS, with_rows=False)
     assert pred.shape == (len(Z),)
+
+
+def test_row_features_are_the_contract_flag_log_area_station_minutes_and_district_level():
+    import pandas as pd
+
+    X = pd.DataFrame(
+        {
+            "価格情報区分": pd.Categorical(["成約価格情報", "不動産取引価格情報"]),
+            "area": [70.0, 20.0],
+            "station_minutes": [5.0, float("nan")],
+            "te_district": [0.1, -0.2],
+            "other": [1, 2],
+        }
+    )
+    rows = stacking.row_features(X)
+    assert stacking.ROW_FEATURES == ["contract", "log_area", "station_minutes", "te_district"]
+    assert rows[:, 0] == pytest.approx([1.0, 0.0])
+    assert rows[:, 1] == pytest.approx(np.log([70.0, 20.0]))
+    assert rows[0, 2] == 5.0 and np.isnan(rows[1, 2])
+    assert rows[:, 3] == pytest.approx([0.1, -0.2])
+
+
+def test_stackers_are_the_four_s12_stackers_and_ridge_matches_fit_ridge(stacked_rows):
+    Z, y = stacked_rows
+    found = stacking.stackers(
+        N_MEMBERS,
+        alpha=1.0,
+        mlp_hidden=(8,),
+        mlp_alpha=1e-3,
+        mlp_seeds=(0,),
+        lgbm_params=LGBM_PARAMS,
+        lgbm_max_rounds=50,
+        lgbm_early_stopping_rounds=10,
+        valid_share=0.2,
+        seed=0,
+    )
+    assert list(found) == ["ridge", "ridge_by_type", "mlp", "lgbm"]
+    for fit, predict in found.values():
+        assert predict(fit(Z, y), Z).shape == (len(Z),)
+    fit, predict = found["ridge"]
+    expected = stacking.predict_ridge(stacking.fit_ridge(Z, y, n_members=N_MEMBERS, alpha=1.0), Z, n_members=N_MEMBERS)
+    assert predict(fit(Z, y), Z) == pytest.approx(expected)

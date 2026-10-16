@@ -8,10 +8,13 @@ The nonlinear stackers (MLP, LightGBM) predict a correction to the members' mean
 nothing falls back to the plain average.
 """
 
+from collections.abc import Callable
+from functools import partial
 from typing import Any
 
 import lightgbm as lgb
 import numpy as np
+import pandas as pd
 from sklearn.impute import SimpleImputer
 from sklearn.linear_model import Ridge
 from sklearn.neural_network import MLPRegressor
@@ -19,6 +22,20 @@ from sklearn.pipeline import Pipeline, make_pipeline
 from sklearn.preprocessing import StandardScaler
 
 from kgl import ensemble
+
+ROW_FEATURES = ["contract", "log_area", "station_minutes", "te_district"]
+
+
+def row_features(X: pd.DataFrame) -> np.ndarray:
+    """The row features the stackers may condition on, in the order of ROW_FEATURES (from the S5 feature frame)."""
+    return np.column_stack(
+        [
+            (X["価格情報区分"] == "成約価格情報").to_numpy(dtype=float),
+            np.log(X["area"].to_numpy()),
+            X["station_minutes"].to_numpy(),
+            X["te_district"].to_numpy(),
+        ]
+    )
 
 
 def correction_inputs(Z: np.ndarray, *, n_members: int, with_rows: bool = True) -> tuple[np.ndarray, np.ndarray]:
@@ -118,3 +135,52 @@ def predict_lgbm(booster: lgb.Booster, Z: np.ndarray, *, n_members: int, with_ro
     """The members' mean plus the booster's correction."""
     X, mean = correction_inputs(Z, n_members=n_members, with_rows=with_rows)
     return mean + booster.predict(X, num_iteration=booster.best_iteration)
+
+
+def stackers(
+    n_members: int,
+    *,
+    alpha: float,
+    mlp_hidden: tuple[int, ...],
+    mlp_alpha: float,
+    mlp_seeds: tuple[int, ...],
+    lgbm_params: dict[str, Any],
+    lgbm_max_rounds: int,
+    lgbm_early_stopping_rounds: int,
+    valid_share: float,
+    seed: int,
+) -> dict[str, tuple[Callable[..., Any], Callable[..., np.ndarray]]]:
+    """The four S12 stackers as (fit(Z, y), predict(model, Z)) pairs."""
+    return {
+        "ridge": (
+            partial(fit_ridge, n_members=n_members, alpha=alpha),
+            partial(predict_ridge, n_members=n_members),
+        ),
+        "ridge_by_type": (
+            partial(fit_ridge_by_type, n_members=n_members, alpha=alpha),
+            partial(predict_ridge_by_type, n_members=n_members),
+        ),
+        "mlp": (
+            partial(
+                fit_mlp,
+                n_members=n_members,
+                hidden=mlp_hidden,
+                alpha=mlp_alpha,
+                seeds=mlp_seeds,
+                valid_share=valid_share,
+            ),
+            partial(predict_mlp, n_members=n_members),
+        ),
+        "lgbm": (
+            partial(
+                fit_lgbm,
+                n_members=n_members,
+                params=lgbm_params,
+                max_rounds=lgbm_max_rounds,
+                early_stopping_rounds=lgbm_early_stopping_rounds,
+                valid_share=valid_share,
+                seed=seed,
+            ),
+            partial(predict_lgbm, n_members=n_members),
+        ),
+    }

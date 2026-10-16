@@ -179,7 +179,7 @@ def _(mo):
 
 
 @app.cell
-def _(env, fs, holdout_ids, np, pl, sample, va_idx):
+def _(env, fs, holdout_ids, np, pl, sample, stacking, va_idx):
     def saved(stage, run):
         """Holdout and test predictions of a saved run, on the log scale."""
         oof = pl.read_parquet(env.output_dir / stage / run / "oof.parquet")
@@ -198,26 +198,15 @@ def _(env, fs, holdout_ids, np, pl, sample, va_idx):
     member_names = list(members)
     s10_stacking = saved("s10_final", "stacking")
     s10_weighted = saved("s10_final", "weighted_average")
-    ROW_FEATURES = ["contract", "log_area", "station_minutes", "te_district"]
-
-    def row_features(X):
-        """The row features the stackers may condition on, in the order of ROW_FEATURES."""
-        return np.column_stack(
-            [
-                (X["価格情報区分"] == "成約価格情報").to_numpy(dtype=float),
-                np.log(X["area"].to_numpy()),
-                X["station_minutes"].to_numpy(),
-                X["te_district"].to_numpy(),
-            ]
-        )
-
     # Z: the members' predictions first, then the row features
-    Z_holdout = np.hstack([np.column_stack([members[n][0] for n in member_names]), row_features(fs.X.iloc[va_idx])])
-    Z_test = np.hstack([np.column_stack([members[n][1] for n in member_names]), row_features(fs.X_test)])
+    Z_holdout = np.hstack(
+        [np.column_stack([members[n][0] for n in member_names]), stacking.row_features(fs.X.iloc[va_idx])]
+    )
+    Z_test = np.hstack([np.column_stack([members[n][1] for n in member_names]), stacking.row_features(fs.X_test)])
     {
         "rows (holdout, test)": (len(Z_holdout), len(Z_test)),
         "missing per row feature (holdout)": dict(
-            zip(ROW_FEATURES, np.isnan(Z_holdout[:, len(member_names) :]).sum(axis=0).tolist(), strict=True)
+            zip(stacking.ROW_FEATURES, np.isnan(Z_holdout[:, len(member_names) :]).sum(axis=0).tolist(), strict=True)
         ),
         "contract share (holdout, test)": (
             round(float(Z_holdout[:, len(member_names)].mean()), 3),
@@ -251,6 +240,19 @@ def _(mo):
 @app.cell
 def _(asdict, cfg, member_names, partial, stacking):
     _n = len(member_names)
+    STACKERS = stacking.stackers(
+        _n,
+        alpha=cfg.stacking_alpha,
+        mlp_hidden=cfg.mlp_hidden,
+        mlp_alpha=cfg.mlp_alpha,
+        mlp_seeds=cfg.mlp_seeds,
+        lgbm_params=asdict(cfg.lgbm),
+        lgbm_max_rounds=cfg.lgbm_max_rounds,
+        lgbm_early_stopping_rounds=cfg.lgbm_early_stopping_rounds,
+        valid_share=cfg.inner_valid_share,
+        seed=cfg.seed,
+    )
+    # the LightGBM stacker without the row features: how much of its gain is nonlinearity on the predictions alone
     _lgbm = {
         "n_members": _n,
         "params": asdict(cfg.lgbm),
@@ -259,29 +261,6 @@ def _(asdict, cfg, member_names, partial, stacking):
         "valid_share": cfg.inner_valid_share,
         "seed": cfg.seed,
     }
-    STACKERS = {
-        "ridge": (
-            partial(stacking.fit_ridge, n_members=_n, alpha=cfg.stacking_alpha),
-            partial(stacking.predict_ridge, n_members=_n),
-        ),
-        "ridge_by_type": (
-            partial(stacking.fit_ridge_by_type, n_members=_n, alpha=cfg.stacking_alpha),
-            partial(stacking.predict_ridge_by_type, n_members=_n),
-        ),
-        "mlp": (
-            partial(
-                stacking.fit_mlp,
-                n_members=_n,
-                hidden=cfg.mlp_hidden,
-                alpha=cfg.mlp_alpha,
-                seeds=cfg.mlp_seeds,
-                valid_share=cfg.inner_valid_share,
-            ),
-            partial(stacking.predict_mlp, n_members=_n),
-        ),
-        "lgbm": (partial(stacking.fit_lgbm, **_lgbm), partial(stacking.predict_lgbm, n_members=_n)),
-    }
-    # the LightGBM stacker without the row features: how much of its gain is nonlinearity on the predictions alone
     ABLATIONS = {
         "lgbm_preds_only": (
             partial(stacking.fit_lgbm, **_lgbm, with_rows=False),

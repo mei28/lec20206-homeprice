@@ -7,28 +7,19 @@ app = marimo.App(width="medium")
 @app.cell
 def _():
     from dataclasses import asdict, dataclass, field
+    from functools import partial
 
-    import lightgbm as lgb
     import marimo as mo
     import numpy as np
     import polars as pl
     import psutil
-    from sklearn.impute import SimpleImputer
-    from sklearn.linear_model import Ridge
-    from sklearn.neural_network import MLPRegressor
-    from sklearn.pipeline import make_pipeline
-    from sklearn.preprocessing import StandardScaler
 
-    from kgl import cv, ensemble, feature_set, lesson, mlit
+    from kgl import cv, ensemble, feature_set, lesson, mlit, stacking
     from kgl.env import comp_dir, detect
     from kgl.io import git_commit, validate_submission, write_submission
     from kgl.metrics import get_metric
 
     return (
-        MLPRegressor,
-        Ridge,
-        SimpleImputer,
-        StandardScaler,
         asdict,
         comp_dir,
         cv,
@@ -40,13 +31,13 @@ def _():
         get_metric,
         git_commit,
         lesson,
-        lgb,
-        make_pipeline,
         mlit,
         mo,
         np,
+        partial,
         pl,
         psutil,
+        stacking,
         validate_submission,
         write_submission,
     )
@@ -258,95 +249,43 @@ def _(mo):
 
 
 @app.cell
-def _(
-    MLPRegressor,
-    Ridge,
-    SimpleImputer,
-    StandardScaler,
-    asdict,
-    cfg,
-    ensemble,
-    lgb,
-    make_pipeline,
-    member_names,
-    np,
-):
-    n_members = len(member_names)
-
-    def fit_ridge(Z, y):
-        return ensemble.fit_stacking(Z[:, :n_members], y, alpha=cfg.stacking_alpha)
-
-    def predict_ridge(model, Z):
-        return model.predict(Z[:, :n_members])
-
-    def by_type(Z):
-        """Member predictions split into a contract-price copy and a survey-price copy, plus a contract flag."""
-        H, contract = Z[:, :n_members], Z[:, n_members : n_members + 1]
-        return np.hstack([H * contract, H * (1 - contract), contract])
-
-    def fit_ridge_by_type(Z, y):
-        return Ridge(alpha=cfg.stacking_alpha).fit(by_type(Z), y)
-
-    def predict_ridge_by_type(model, Z):
-        return model.predict(by_type(Z))
-
-    def correction_inputs(Z, *, with_rows=True):
-        """Inputs for the nonlinear stackers (deviations from the members' mean, the mean, row features) and the mean."""
-        H = Z[:, :n_members]
-        mean = H.mean(axis=1)
-        rows = [Z[:, n_members:]] if with_rows else []
-        return np.hstack([H - mean[:, None], mean[:, None], *rows]), mean
-
-    def fit_mlp(Z, y):
-        X, mean = correction_inputs(Z)
-        return [
-            make_pipeline(
-                SimpleImputer(strategy="median"),
-                StandardScaler(),
-                MLPRegressor(
-                    hidden_layer_sizes=cfg.mlp_hidden,
-                    alpha=cfg.mlp_alpha,
-                    early_stopping=True,
-                    validation_fraction=cfg.inner_valid_share,
-                    max_iter=500,
-                    random_state=seed,
-                ),
-            ).fit(X, y - mean)
-            for seed in cfg.mlp_seeds
-        ]
-
-    def predict_mlp(models, Z):
-        X, mean = correction_inputs(Z)
-        return mean + np.mean([m.predict(X) for m in models], axis=0)
-
-    def fit_lgbm(Z, y, *, with_rows=True):
-        X, mean = correction_inputs(Z, with_rows=with_rows)
-        inner = np.random.default_rng(cfg.seed).random(len(y)) < cfg.inner_valid_share
-        train_set = lgb.Dataset(X[~inner], label=(y - mean)[~inner])
-        valid_set = lgb.Dataset(X[inner], label=(y - mean)[inner], reference=train_set)
-        return lgb.train(
-            asdict(cfg.lgbm),
-            train_set,
-            num_boost_round=cfg.lgbm_max_rounds,
-            valid_sets=[valid_set],
-            callbacks=[lgb.early_stopping(cfg.lgbm_early_stopping_rounds, verbose=False), lgb.log_evaluation(0)],
-        )
-
-    def predict_lgbm(booster, Z, *, with_rows=True):
-        X, mean = correction_inputs(Z, with_rows=with_rows)
-        return mean + booster.predict(X, num_iteration=booster.best_iteration)
-
+def _(asdict, cfg, member_names, partial, stacking):
+    _n = len(member_names)
+    _lgbm = {
+        "n_members": _n,
+        "params": asdict(cfg.lgbm),
+        "max_rounds": cfg.lgbm_max_rounds,
+        "early_stopping_rounds": cfg.lgbm_early_stopping_rounds,
+        "valid_share": cfg.inner_valid_share,
+        "seed": cfg.seed,
+    }
     STACKERS = {
-        "ridge": (fit_ridge, predict_ridge),
-        "ridge_by_type": (fit_ridge_by_type, predict_ridge_by_type),
-        "mlp": (fit_mlp, predict_mlp),
-        "lgbm": (fit_lgbm, predict_lgbm),
+        "ridge": (
+            partial(stacking.fit_ridge, n_members=_n, alpha=cfg.stacking_alpha),
+            partial(stacking.predict_ridge, n_members=_n),
+        ),
+        "ridge_by_type": (
+            partial(stacking.fit_ridge_by_type, n_members=_n, alpha=cfg.stacking_alpha),
+            partial(stacking.predict_ridge_by_type, n_members=_n),
+        ),
+        "mlp": (
+            partial(
+                stacking.fit_mlp,
+                n_members=_n,
+                hidden=cfg.mlp_hidden,
+                alpha=cfg.mlp_alpha,
+                seeds=cfg.mlp_seeds,
+                valid_share=cfg.inner_valid_share,
+            ),
+            partial(stacking.predict_mlp, n_members=_n),
+        ),
+        "lgbm": (partial(stacking.fit_lgbm, **_lgbm), partial(stacking.predict_lgbm, n_members=_n)),
     }
     # the LightGBM stacker without the row features: how much of its gain is nonlinearity on the predictions alone
     ABLATIONS = {
         "lgbm_preds_only": (
-            lambda Z, y: fit_lgbm(Z, y, with_rows=False),
-            lambda booster, Z: predict_lgbm(booster, Z, with_rows=False),
+            partial(stacking.fit_lgbm, **_lgbm, with_rows=False),
+            partial(stacking.predict_lgbm, n_members=_n, with_rows=False),
         ),
     }
     return ABLATIONS, STACKERS

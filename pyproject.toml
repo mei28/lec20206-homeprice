@@ -35,6 +35,12 @@ track = [
     "wandb",
     "mlflow",
 ]
+# S13: TabNet and TabPFN on the GPU
+tabular_dl = [
+    "torch",
+    "pytorch-tabnet",
+    "tabpfn",
+]
 
 [build-system]
 requires = ["hatchling"]
@@ -45,6 +51,17 @@ packages = ["src/kgl"]
 
 [tool.uv]
 package = true
+default-groups = ["dev", "tabular_dl"]
+
+# The GPU driver here (555, CUDA 12.5) runs CUDA 12.x builds; PyPI's default torch wheels target newer CUDA.
+[[tool.uv.index]]
+name = "pytorch-cu126"
+url = "https://download.pytorch.org/whl/cu126"
+explicit = true
+
+[tool.uv.sources]
+torch = { index = "pytorch-cu126" }
+torchvision = { index = "pytorch-cu126" }
 
 [tool.ruff]
 line-length = 120

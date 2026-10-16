@@ -763,7 +763,7 @@ def _(
     - TabNet の holdout RMSLE は {member("tabnet")["holdout_rmsle"]:.4f} で、MLP（S7）の {member("mlp")["holdout_rmsle"]:.4f} と同じくらいです。
       CatBoost（{member("catboost_long")["holdout_rmsle"]:.4f}）には届きません。
       CatBoost との誤差の相関は {member("tabnet")["error correlation with catboost"]:.3f} で、XGBoost（{member("xgboost")["error correlation with catboost"]:.3f}）や MLP（{member("mlp")["error correlation with catboost"]:.3f}）と変わりません。
-      なお、GPU で学習するニューラルネットは、seed を固定しても実行のたびに結果が少し変わります。同じ設定の前回の実行では 0.2172 でした。
+      なお、GPU で学習するニューラルネットは、seed を固定しても実行のたびに結果が少し変わります。同じ設定のこれまでの実行では、0.2172 と 0.2220 でした。
       スタッキングの平均に足したときは {change("stacker_average_with_tabnet")} で、改善とは言えません。TabNet は採用しません。
     - TabPFN の holdout RMSLE は {member("tabpfn")["holdout_rmsle"]:.4f} で、これまでのどの単独モデルよりも良くなりました。
       CatBoost との差は {tabpfn_vs_catboost[0]:+.4f}（95% の範囲 {tabpfn_vs_catboost[1]:+.4f}〜{tabpfn_vs_catboost[2]:+.4f}）です。

@@ -46,6 +46,12 @@ S1（`s1_baseline`、2026-10-10）の時点。詳細は `docs/reviews/20261010-s
 | Metric re-implementation matches the competition text | ok | `rmsle` は sklearn の `root_mean_squared_log_error`、手計算のテストあり |
 | Submission id order equals the sample | ok | `validate_submission` を書き出し前に呼ぶ |
 
+S13（`s13_tabular_dl`、2026-10-16）で再点検した。詳細は `docs/reviews/20261016-s13_tabular_dl-leak.md`（判定 clean）。
+
+- TabPFN の holdout 用の文脈は 2024Q4 までの直近5万行で、holdout の行も 2025 年の行も含まない。前処理は文脈から作る。
+- S12 のスタッキングを作り直すと S12 を再現し、TabPFN を足した改善は -0.0028（-0.0034〜-0.0022）。時間の順向き（Q1 で学習して Q2 を予測）だけでも -0.0029。
+- S5 からの非対称（low）: 目的変数を使わない地区・駅の集約特徴と件数は、holdout の行も含む全学習行から作る。test の行は自分の集約に入らない。LightGBM では holdout が 0.0004 楽観的になる。全メンバーに同じようにかかり、メンバーの比較は変わらないので、直さずに記録する。
+
 CV と test の条件の差（リークではないが LB とのずれの要因）:
 
 - 予測先の長さ: holdout は学習終了の 1〜2 四半期先、test は 1〜3 四半期先。

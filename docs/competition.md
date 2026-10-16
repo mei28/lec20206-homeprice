@@ -54,6 +54,7 @@ Filled by the `kaggle-onboard` skill before any training code is written.
 ## Rules
 
 - Pretrained models / licenses: 特に制限なし。AI ツール（LLM、コーディングエージェント）の利用を推奨（Rules 2.6.c、7.a）
+  - 使用中の学習済みモデル: TabPFN-3.5（Prior Labs、重み `tabpfn-v3.5-20260909`、https://huggingface.co/Prior-Labs/tabpfn_3_5 ）。無料で誰でも取得できるが、非商用ライセンスへの同意が要る。技術レポート https://arxiv.org/abs/2609.17895 の 3.3 節によると、事前学習は TabPFN-3 と同じ人工データの生成手順によるもので、実データの利用は書かれていない。S13 で使用（#37、2026-10-16）
 - Hand labeling: 記載なし
 - Other:
   - テスト期間データ禁止のルールを、チームの AI 向け指示ファイル（CLAUDE.md、AGENTS.md など）に書くこと（Rules 2.6.a）。本 repo では `CLAUDE.md` の「Competition rules for agents」に記載

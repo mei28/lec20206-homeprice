@@ -11,7 +11,7 @@ wrap-up when the order or the pending decisions change.
 | Our best public LB | 0.19222（S9 `stacking`、2026-10-16、CV 0.1951）。S6 は 0.19642、S5 は 0.19895、S4 は 0.19911、S3 は 0.20149 |
 | Best public notebook | なし（公開ノートブック0件、2026-10-10） |
 | LB top and medal line | 学生チームの1位は 0.19207、3位は 0.19328。S9 で2位（2026-10-16）。AI単独ベースライン（0.19726）は学生4チームが上回った。メダルなし |
-| CV of the current baseline | S10 スタッキング 0.1950（holdout RMSLE）。S9 スタッキング 0.1951。単独の最良は S6 CatBoost 0.1990。S5 LightGBM 0.2035、S4 0.2050、S3 0.2090、S1 0.2988、下限 0.8137。S1 の leak 点検は clean |
+| CV of the current baseline | S13 スタッキングの平均＋TabPFN 0.1910（holdout RMSLE）。S12 スタッキングの平均 0.1938、S10 スタッキング 0.1950、S9 スタッキング 0.1951。単独の最良は S13 TabPFN 0.1948、GBDT では S6 CatBoost 0.1990。S5 LightGBM 0.2035、S4 0.2050、S3 0.2090、S1 0.2988、下限 0.8137。S1 の leak 点検は clean |
 
 ## 方針（2026-10-10 にユーザーと決定）
 
@@ -48,6 +48,7 @@ wrap-up when the order or the pending decisions change.
 | S10 | `s10_final.py` | 仕上げ（LightGBM の seed 平均、CatBoost の本数、最終のアンサンブル、最終2提出の候補） | #25 | 済（stacking 0.1950、重み付き 0.1959） |
 | S11 | `s11_pseudo.py` | pseudo label（S10 の予測を test の仮の正解にして LightGBM を学習し直す） | #34 | 済（生徒単独は S5 より -0.0063〜-0.0069 だが、S5 と教師の単純な平均と同じ。スタッキングに戻すと差なし、不採用） |
 | S12 | `s12_black_magic.py` | 黒魔術（MLP・LightGBM のスタッキングと、スタッキングの平均。俵さんの記事にならう） | #35 | 済（スタッキングの平均 0.1938、S10 より -0.0012。採用し、最終提出の候補に追加） |
+| S13 | `s13_tabular_dl.py` | 表データ向けの深層学習（TabNet、TabPFN-3.5）をメンバーに足す | #36 #37 | 済（TabPFN 単独 0.1948 で単独最良。S12 のスタッキングの平均に足して 0.1910、S12 より -0.0028。採用し、最終提出の候補に追加。TabNet は不採用。leak 点検は clean） |
 
 提出は段階ごとに最大1回で、出すかどうかはユーザーが決める。S1 は「もう少し向上させてから」で見送り（2026-10-10）。提出枠は 10/10〜10/21 の12回。最初から最良を出さず、段階の順に1日1回ずつ少しずつ出す（2026-10-11 ユーザー）。
 
@@ -55,7 +56,8 @@ wrap-up when the order or the pending decisions change.
 
 ## Decisions for the user
 
-- 次の提出をいつ、どれにするか（S3 は 2026-10-10、S4 は 2026-10-11、S5 は 2026-10-14、S6 は 2026-10-15、S9 は 2026-10-16 に提出済み。段階の順なら次は S12 の黒魔術）。作成・検査済みの提出ファイル: S1 `lgbm_raw`（0.2988）、S3 `plus_notation`（0.2090）、S4 `hedonic_linear`（0.2050）、S5 `all_three`（0.2035）、S6 `catboost`（0.1990）、S6 `xgboost`（0.2103）、S7 `mlp`（0.2168）ほか、S9 `stacking`（0.1951）・`weighted_average`（0.1960）・`simple_average`（0.2054）、S10 `stacking`（0.1950）・`weighted_average`（0.1959）・`lightgbm_seed_avg`（0.2022）・`catboost_long`（0.1990）
-- 最終2提出の候補: S12 `stacker_average`（CV 0.1938、最良）、S10 `stacking`（0.1950）、S10 `weighted_average`（0.1959、重みが0以上で保守的）。どちらも S4 のヘドニック指数の外挿が前提。S4 の提出で CV と LB は同じ向きに動いた（CV -0.0040、LB -0.0024、#3）
+- 次の提出をいつ、どれにするか（S3 は 2026-10-10、S4 は 2026-10-11、S5 は 2026-10-14、S6 は 2026-10-15、S9 は 2026-10-16 に提出済み。段階の順なら次は S12 の黒魔術、その次が S13）。作成・検査済みの提出ファイル: S1 `lgbm_raw`（0.2988）、S3 `plus_notation`（0.2090）、S4 `hedonic_linear`（0.2050）、S5 `all_three`（0.2035）、S6 `catboost`（0.1990）、S6 `xgboost`（0.2103）、S7 `mlp`（0.2168）ほか、S9 `stacking`（0.1951）・`weighted_average`（0.1960）・`simple_average`（0.2054）、S10 `stacking`（0.1950）・`weighted_average`（0.1959）・`lightgbm_seed_avg`（0.2022）・`catboost_long`（0.1990）、S12 `stacker_average`（0.1938）、S13 `stacker_average_with_tabpfn`（0.1910）・`tabpfn`（0.1948）
+- 最終2提出の候補: S13 `stacker_average_with_tabpfn`（CV 0.1910、最良）、S12 `stacker_average`（0.1938）、S10 `stacking`（0.1950）、S10 `weighted_average`（0.1959、重みが0以上で保守的）。どちらも S4 のヘドニック指数の外挿が前提。S4 の提出で CV と LB は同じ向きに動いた（CV -0.0040、LB -0.0024、#3）
 - S9: stacking は「2025Q1 で fit して Q2 で採点、逆向きも」の方式で進める（2026-10-10、ユーザーの「ガンガン進めていい」を受けて決定）
+- holdout の集約特徴の非対称（S5 から、目的変数は使わない）: 地区・駅の集約と件数に holdout の行が入るため、CV が 0.0004 楽観的になる。全メンバーに同じようにかかるので直さず記録した（2026-10-16、`docs/reviews/20261016-s13_tabular_dl-leak.md`）。直すなら全メンバーの再学習が要る
 - 各段階のディスカッション投稿の有無

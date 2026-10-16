@@ -20,6 +20,11 @@
 | s12_black_magic | mlp | 0.1942 |  | s10_final | rmsle | mlp stacker on the S10 members (#35) | output/s12_black_magic/mlp |
 | s12_black_magic | ridge_by_type | 0.1951 |  | s10_final | rmsle | ridge_by_type stacker on the S10 members (#35) | output/s12_black_magic/ridge_by_type |
 | s12_black_magic | stacker_average | 0.1938 |  | s10_final | rmsle | stacker_average stacker on the S10 members (#35) | output/s12_black_magic/stacker_average |
+| s13_tabular_dl | stacker_average_with_both | 0.1910 |  | s12_black_magic | rmsle | S12 stacker average with tabnet and tabpfn added (#36 #37) | output/s13_tabular_dl/stacker_average_with_both |
+| s13_tabular_dl | stacker_average_with_tabnet | 0.1938 |  | s12_black_magic | rmsle | S12 stacker average with tabnet added (#36 #37) | output/s13_tabular_dl/stacker_average_with_tabnet |
+| s13_tabular_dl | stacker_average_with_tabpfn | 0.1910 |  | s12_black_magic | rmsle | S12 stacker average with tabpfn added (#36 #37) | output/s13_tabular_dl/stacker_average_with_tabpfn |
+| s13_tabular_dl | tabnet | 0.2201 |  | s12_black_magic | rmsle | TabNet on the S5 feature set (#36) | output/s13_tabular_dl/tabnet |
+| s13_tabular_dl | tabpfn | 0.1948 |  | s12_black_magic | rmsle | TabPFN-3.5, context = the 50000 most recent rows (#37) | output/s13_tabular_dl/tabpfn |
 | s1_baseline | floor_median | 0.8137 |  | none | rmsle | constant training median (#7) | output/s1_baseline/floor_median |
 | s1_baseline | lgbm_raw | 0.2988 |  | none | rmsle | minimal conversion, log1p target (#6, #8) | output/s1_baseline/lgbm_raw |
 | s3_features | drop_extremes | 0.2111 |  | s1_baseline | rmsle | adopted S3 features, extreme price-per-m2 rows dropped from training (#31) | output/s3_features/drop_extremes |
@@ -52,5 +57,5 @@
 | s8_external | districts | 0.2035 |  | s5_te | rmsle | S5 all_three + districts (#22) | output/s8_external/districts |
 | s8_external | stations | 0.2032 |  | s5_te | rmsle | S5 all_three + stations (#21) | output/s8_external/stations |
 | s9_ensemble | simple_average | 0.2054 |  | s7_mlp_classic | rmsle | simple_average of the S5-S7 members (#23, #30) | output/s9_ensemble/simple_average |
-| s9_ensemble | stacking | 0.1951 |  | s7_mlp_classic | rmsle | stacking of the S5-S7 members (#23, #30) | output/s9_ensemble/stacking |
+| s9_ensemble | stacking | 0.1951 | 0.19222 | s7_mlp_classic | rmsle | stacking of the S5-S7 members (#23, #30) | output/s9_ensemble/stacking |
 | s9_ensemble | weighted_average | 0.1960 |  | s7_mlp_classic | rmsle | weighted_average of the S5-S7 members (#23, #30) | output/s9_ensemble/weighted_average |

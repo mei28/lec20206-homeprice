@@ -172,3 +172,42 @@ def test_stacker_average_scores_each_part_with_combiners_fit_on_the_other_part(s
     holdout_shifted, _ = stacking.stacker_average(H, H, rows, rows, shifted, first, _found())
     assert holdout_shifted[first] == pytest.approx(holdout[first])
     assert not np.allclose(holdout_shifted[~first], holdout[~first])
+
+
+def test_stacker_average_with_block_adds_the_earlier_rows_to_every_fit(stacked_rows):
+    Z, y = stacked_rows
+    H, rows = Z[:, :N_MEMBERS], Z[:, N_MEMBERS:]
+    early, late = np.arange(len(y)) < 800, np.arange(len(y)) >= 800
+    first = np.arange(late.sum()) < 600
+    holdout, test = stacking.stacker_average_with_block(
+        H[late], H[:300], rows[late], rows[:300], y[late], first, H[early], rows[early], y[early], _found()
+    )
+    Z_late, Z_early = Z[late], Z[early]
+    parts_h, parts_t = [], []
+    for fit, predict in _found().values():
+        parts_h.append(ensemble.cross_predict_with_block(Z_late, y[late], first, Z_early, y[early], fit, predict))
+        parts_t.append(predict(fit(np.vstack([Z_early, Z_late]), np.concatenate([y[early], y[late]])), Z[:300]))
+    H_late, H_early = H[late], H[early]
+    parts_h.append(
+        ensemble.cross_predict_with_block(
+            H_late, y[late], first, H_early, y[early], ensemble.fit_weights, lambda w, Hp: Hp @ w
+        )
+    )
+    parts_t.append(H[:300] @ ensemble.fit_weights(np.vstack([H_early, H_late]), np.concatenate([y[early], y[late]])))
+    assert holdout == pytest.approx(np.mean(parts_h, axis=0))
+    assert test == pytest.approx(np.mean(parts_t, axis=0))
+
+
+def test_stacker_average_forward_fits_on_the_earlier_rows_only(stacked_rows):
+    Z, y = stacked_rows
+    H, rows = Z[:, :N_MEMBERS], Z[:, N_MEMBERS:]
+    early, late = np.arange(len(y)) < 800, np.arange(len(y)) >= 800
+    forward = stacking.stacker_average_forward(H[late], rows[late], H[early], rows[early], y[early], _found())
+    shifted = y.copy()
+    shifted[late] += 1.0  # the later rows' targets are never used
+    again = stacking.stacker_average_forward(H[late], rows[late], H[early], rows[early], shifted[early], _found())
+    assert forward.shape == (late.sum(),)
+    assert forward == pytest.approx(again)
+    parts = [predict(fit(Z[early], y[early]), Z[late]) for fit, predict in _found().values()]
+    parts.append(H[late] @ ensemble.fit_weights(H[early], y[early]))
+    assert forward == pytest.approx(np.mean(parts, axis=0))

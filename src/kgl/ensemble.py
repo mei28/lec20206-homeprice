@@ -36,3 +36,20 @@ def cross_predict(
         combiner = fit(H[fit_rows], y[fit_rows])
         out[~fit_rows] = predict(combiner, H[~fit_rows])
     return out
+
+
+def cross_predict_with_block(
+    H: np.ndarray,
+    y: np.ndarray,
+    first_part: np.ndarray,
+    H_block: np.ndarray,
+    y_block: np.ndarray,
+    fit: Callable[[np.ndarray, np.ndarray], Any],
+    predict: Callable[[Any, np.ndarray], np.ndarray],
+) -> np.ndarray:
+    """`cross_predict` with an extra block of rows (an earlier period) added to every fit; only H's rows are predicted."""
+    out = np.empty(len(y))
+    for fit_rows in (first_part, ~first_part):
+        combiner = fit(np.vstack([H_block, H[fit_rows]]), np.concatenate([y_block, y[fit_rows]]))
+        out[~fit_rows] = predict(combiner, H[~fit_rows])
+    return out

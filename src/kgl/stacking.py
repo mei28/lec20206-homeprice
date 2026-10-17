@@ -213,3 +213,55 @@ def stacker_average(
         )
     )
     return np.mean([h for h, _ in parts], axis=0), np.mean([t for _, t in parts], axis=0)
+
+
+def stacker_average_with_block(
+    H: np.ndarray,
+    T: np.ndarray,
+    rows_holdout: np.ndarray,
+    rows_test: np.ndarray,
+    y: np.ndarray,
+    first_part: np.ndarray,
+    H_block: np.ndarray,
+    rows_block: np.ndarray,
+    y_block: np.ndarray,
+    found: dict[str, tuple[Callable[..., Any], Callable[..., np.ndarray]]],
+) -> tuple[np.ndarray, np.ndarray]:
+    """`stacker_average` with an earlier block of rows (S15: 2024Q3-Q4) added to every combiner's training rows.
+
+    The holdout predictions come from `ensemble.cross_predict_with_block`; the test predictions from combiners fit
+    on the block and every holdout row.
+    """
+    Z_h, Z_t, Z_b = np.hstack([H, rows_holdout]), np.hstack([T, rows_test]), np.hstack([H_block, rows_block])
+    Z_all, H_all, y_all = np.vstack([Z_b, Z_h]), np.vstack([H_block, H]), np.concatenate([y_block, y])
+    parts = [
+        (
+            ensemble.cross_predict_with_block(Z_h, y, first_part, Z_b, y_block, fit, predict),
+            predict(fit(Z_all, y_all), Z_t),
+        )
+        for fit, predict in found.values()
+    ]
+    parts.append(
+        (
+            ensemble.cross_predict_with_block(
+                H, y, first_part, H_block, y_block, ensemble.fit_weights, lambda w, Hp: Hp @ w
+            ),
+            T @ ensemble.fit_weights(H_all, y_all),
+        )
+    )
+    return np.mean([h for h, _ in parts], axis=0), np.mean([t for _, t in parts], axis=0)
+
+
+def stacker_average_forward(
+    H: np.ndarray,
+    rows: np.ndarray,
+    H_block: np.ndarray,
+    rows_block: np.ndarray,
+    y_block: np.ndarray,
+    found: dict[str, tuple[Callable[..., Any], Callable[..., np.ndarray]]],
+) -> np.ndarray:
+    """The stacker average fit on the earlier block only, predicting the rows of H (forward in time only)."""
+    Z, Z_b = np.hstack([H, rows]), np.hstack([H_block, rows_block])
+    parts = [predict(fit(Z_b, y_block), Z) for fit, predict in found.values()]
+    parts.append(H @ ensemble.fit_weights(H_block, y_block))
+    return np.mean(parts, axis=0)

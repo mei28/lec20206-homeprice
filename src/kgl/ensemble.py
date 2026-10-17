@@ -47,7 +47,7 @@ def cross_predict_with_block(
     fit: Callable[[np.ndarray, np.ndarray], Any],
     predict: Callable[[Any, np.ndarray], np.ndarray],
 ) -> np.ndarray:
-    """`cross_predict` with an extra block of rows (an earlier period) added to every fit; only H's rows are predicted."""
+    """`cross_predict` with an extra block of rows (an earlier period) added to every fit; predicts H's rows only."""
     out = np.empty(len(y))
     for fit_rows in (first_part, ~first_part):
         combiner = fit(np.vstack([H_block, H[fit_rows]]), np.concatenate([y_block, y[fit_rows]]))

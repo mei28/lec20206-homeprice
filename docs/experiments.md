@@ -30,6 +30,7 @@
 | s14_tuning | mlp_tuned | 0.2117 |  | s13_tabular_dl | rmsle | mlp with the settings Optuna chose on 2024Q3-Q4 (#41) | output/s14_tuning/mlp_tuned |
 | s14_tuning | stacker_average_tuned | 0.1911 |  | s13_tabular_dl | rmsle | S13 stacker average with the Optuna-tuned LightGBM, CatBoost, XGBoost and MLP (#38-#42) | output/s14_tuning/stacker_average_tuned |
 | s14_tuning | xgboost_tuned | 0.1998 |  | s13_tabular_dl | rmsle | xgboost with the settings Optuna chose on 2024Q3-Q4 (#42) | output/s14_tuning/xgboost_tuned |
+| s15_more_stack_rows | stacker_average_with_block | 0.1910 |  | s14_tuning | rmsle | S14 stacker average with the members' 2024Q3-Q4 predictions added to every stacker's training rows (#43) | output/s15_more_stack_rows/stacker_average_with_block |
 | s1_baseline | floor_median | 0.8137 |  | none | rmsle | constant training median (#7) | output/s1_baseline/floor_median |
 | s1_baseline | lgbm_raw | 0.2988 |  | none | rmsle | minimal conversion, log1p target (#6, #8) | output/s1_baseline/lgbm_raw |
 | s3_features | drop_extremes | 0.2111 |  | s1_baseline | rmsle | adopted S3 features, extreme price-per-m2 rows dropped from training (#31) | output/s3_features/drop_extremes |

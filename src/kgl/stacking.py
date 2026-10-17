@@ -184,3 +184,32 @@ def stackers(
             partial(predict_lgbm, n_members=n_members),
         ),
     }
+
+
+def stacker_average(
+    H: np.ndarray,
+    T: np.ndarray,
+    rows_holdout: np.ndarray,
+    rows_test: np.ndarray,
+    y: np.ndarray,
+    first_part: np.ndarray,
+    found: dict[str, tuple[Callable[..., Any], Callable[..., np.ndarray]]],
+) -> tuple[np.ndarray, np.ndarray]:
+    """S12's recipe (S13 onward): the `found` stackers and the weighted average, then their plain average.
+
+    H and T hold the members' holdout and test log predictions (one column per member), rows_* the row features.
+    The holdout predictions come from `ensemble.cross_predict` on `first_part`; the test predictions from
+    combiners fit on every holdout row.
+    """
+    Z_h, Z_t = np.hstack([H, rows_holdout]), np.hstack([T, rows_test])
+    parts = [
+        (ensemble.cross_predict(Z_h, y, first_part, fit, predict), predict(fit(Z_h, y), Z_t))
+        for fit, predict in found.values()
+    ]
+    parts.append(
+        (
+            ensemble.cross_predict(H, y, first_part, ensemble.fit_weights, lambda w, Hp: Hp @ w),
+            T @ ensemble.fit_weights(H, y),
+        )
+    )
+    return np.mean([h for h, _ in parts], axis=0), np.mean([t for _, t in parts], axis=0)

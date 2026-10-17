@@ -130,3 +130,45 @@ def test_stackers_are_the_four_s12_stackers_and_ridge_matches_fit_ridge(stacked_
     fit, predict = found["ridge"]
     expected = stacking.predict_ridge(stacking.fit_ridge(Z, y, n_members=N_MEMBERS, alpha=1.0), Z, n_members=N_MEMBERS)
     assert predict(fit(Z, y), Z) == pytest.approx(expected)
+
+
+def _found():
+    return stacking.stackers(
+        N_MEMBERS,
+        alpha=1.0,
+        mlp_hidden=(8,),
+        mlp_alpha=1e-3,
+        mlp_seeds=(0,),
+        lgbm_params=LGBM_PARAMS,
+        lgbm_max_rounds=50,
+        lgbm_early_stopping_rounds=10,
+        valid_share=0.2,
+        seed=0,
+    )
+
+
+def test_stacker_average_is_the_mean_of_the_stackers_and_the_weighted_average(stacked_rows):
+    Z, y = stacked_rows
+    H, rows = Z[:, :N_MEMBERS], Z[:, N_MEMBERS:]
+    first = np.arange(len(y)) < 1000
+    holdout, test = stacking.stacker_average(H, H[:300], rows, rows[:300], y, first, _found())
+    parts_h, parts_t = [], []
+    for fit, predict in _found().values():
+        parts_h.append(ensemble.cross_predict(Z, y, first, fit, predict))
+        parts_t.append(predict(fit(Z, y), Z[:300]))
+    parts_h.append(ensemble.cross_predict(H, y, first, ensemble.fit_weights, lambda w, Hp: Hp @ w))
+    parts_t.append(H[:300] @ ensemble.fit_weights(H, y))
+    assert holdout == pytest.approx(np.mean(parts_h, axis=0))
+    assert test == pytest.approx(np.mean(parts_t, axis=0))
+
+
+def test_stacker_average_scores_each_part_with_combiners_fit_on_the_other_part(stacked_rows):
+    Z, y = stacked_rows
+    H, rows = Z[:, :N_MEMBERS], Z[:, N_MEMBERS:]
+    first = np.arange(len(y)) < 1000
+    holdout, _ = stacking.stacker_average(H, H, rows, rows, y, first, _found())
+    shifted = y.copy()
+    shifted[first] += 1.0  # the first part's targets must not reach its own predictions
+    holdout_shifted, _ = stacking.stacker_average(H, H, rows, rows, shifted, first, _found())
+    assert holdout_shifted[first] == pytest.approx(holdout[first])
+    assert not np.allclose(holdout_shifted[~first], holdout[~first])

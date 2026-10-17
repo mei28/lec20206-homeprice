@@ -17,7 +17,7 @@ def _():
     from pytorch_tabnet.tab_model import TabNetRegressor
     from tabpfn import TabPFNRegressor
 
-    from kgl import cv, ensemble, feature_set, lesson, mlit, stacking
+    from kgl import cv, feature_set, lesson, mlit, stacking
     from kgl.env import comp_dir, detect
     from kgl.io import git_commit, validate_submission, write_submission
     from kgl.metrics import get_metric
@@ -30,7 +30,6 @@ def _():
         cv,
         dataclass,
         detect,
-        ensemble,
         feature_set,
         field,
         get_metric,
@@ -613,16 +612,13 @@ def _(mo):
 
 
 @app.cell
-def _(asdict, cfg, ensemble, fs, in_q1, np, stacking, va_idx, y_holdout):
+def _(asdict, cfg, fs, in_q1, np, stacking, va_idx, y_holdout):
     rows_holdout = stacking.row_features(fs.X.iloc[va_idx])
     rows_test = stacking.row_features(fs.X_test)
 
     def stacker_average(members):
         """S12's recipe on a member set: the four stackers and the weighted average, then their plain average."""
         names = list(members)
-        H = np.column_stack([members[n][0] for n in names])
-        T = np.column_stack([members[n][1] for n in names])
-        Z_h, Z_t = np.hstack([H, rows_holdout]), np.hstack([T, rows_test])
         found = stacking.stackers(
             len(names),
             alpha=cfg.stacking_alpha,
@@ -635,17 +631,15 @@ def _(asdict, cfg, ensemble, fs, in_q1, np, stacking, va_idx, y_holdout):
             valid_share=cfg.inner_valid_share,
             seed=cfg.seed,
         )
-        parts = [
-            (ensemble.cross_predict(Z_h, y_holdout, in_q1, fit, predict), predict(fit(Z_h, y_holdout), Z_t))
-            for fit, predict in found.values()
-        ]
-        parts.append(
-            (
-                ensemble.cross_predict(H, y_holdout, in_q1, ensemble.fit_weights, lambda w, Hp: Hp @ w),
-                T @ ensemble.fit_weights(H, y_holdout),
-            )
+        return stacking.stacker_average(
+            np.column_stack([members[n][0] for n in names]),
+            np.column_stack([members[n][1] for n in names]),
+            rows_holdout,
+            rows_test,
+            y_holdout,
+            in_q1,
+            found,
         )
-        return np.mean([h for h, _ in parts], axis=0), np.mean([t for _, t in parts], axis=0)
 
     return (stacker_average,)
 

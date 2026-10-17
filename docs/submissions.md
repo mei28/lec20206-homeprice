@@ -7,3 +7,4 @@
 | 2026-10-14 | s5_te | all_three | 0.2035 | 0.19895 | S5 target encoding, district and station aggregates, and counts on top of S4 |  | submission.csv |
 | 2026-10-15 | s6_gbdt | catboost | 0.1990 | 0.19642 | S6 CatBoost on the S5 feature set |  | submission.csv |
 | 2026-10-16 | s9_ensemble | stacking | 0.1951 | 0.19222 | S9 Ridge stacking of the S5-S7 members (LightGBM, CatBoost, XGBoost, MLP, RandomForest, Ridge) |  | submission.csv |
+| 2026-10-17 | s12_black_magic | stacker_average | 0.1938 | 0.19139 | S12 average of four stackers (Ridge, Ridge by price type, MLP, LightGBM) on the S10 members |  | submission.csv |

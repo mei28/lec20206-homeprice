@@ -19,7 +19,7 @@
 | s12_black_magic | lgbm_preds_only | 0.1944 |  | s10_final | rmsle | lgbm_preds_only stacker on the S10 members (#35) | output/s12_black_magic/lgbm_preds_only |
 | s12_black_magic | mlp | 0.1942 |  | s10_final | rmsle | mlp stacker on the S10 members (#35) | output/s12_black_magic/mlp |
 | s12_black_magic | ridge_by_type | 0.1951 |  | s10_final | rmsle | ridge_by_type stacker on the S10 members (#35) | output/s12_black_magic/ridge_by_type |
-| s12_black_magic | stacker_average | 0.1938 |  | s10_final | rmsle | stacker_average stacker on the S10 members (#35) | output/s12_black_magic/stacker_average |
+| s12_black_magic | stacker_average | 0.1938 | 0.19139 | s10_final | rmsle | stacker_average stacker on the S10 members (#35) | output/s12_black_magic/stacker_average |
 | s13_tabular_dl | stacker_average_with_both | 0.1910 |  | s12_black_magic | rmsle | S12 stacker average with tabnet and tabpfn added (#36 #37) | output/s13_tabular_dl/stacker_average_with_both |
 | s13_tabular_dl | stacker_average_with_tabnet | 0.1938 |  | s12_black_magic | rmsle | S12 stacker average with tabnet added (#36 #37) | output/s13_tabular_dl/stacker_average_with_tabnet |
 | s13_tabular_dl | stacker_average_with_tabpfn | 0.1910 |  | s12_black_magic | rmsle | S12 stacker average with tabpfn added (#36 #37) | output/s13_tabular_dl/stacker_average_with_tabpfn |

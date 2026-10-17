@@ -98,7 +98,7 @@ def _(dataclass, field, psutil):
 
     @dataclass
     class XgbParams:
-        # S6's XGBoost
+        # S6's XGBoost, on the GPU in this stage (the search and the final model alike)
         objective: str = "reg:squarederror"
         eta: float = 0.05
         max_depth: int = 8
@@ -109,6 +109,7 @@ def _(dataclass, field, psutil):
         max_cat_to_onehot: int = 1
         seed: int = 42
         nthread: int = THREADS
+        device: str = "cuda"
 
     @dataclass
     class MlpParams:
@@ -131,9 +132,9 @@ def _(dataclass, field, psutil):
 
     @dataclass
     class Trials:
-        # Set from one timed trial each (2026-10-17): about 15 s, 280 s, 40 s and 50 s.
+        # Set from one timed trial each (2026-10-17): LightGBM 15 s, XGBoost 7 s on the GPU, MLP 50 s, CatBoost 280 s.
         lightgbm: int = 300
-        xgboost: int = 200
+        xgboost: int = 400
         mlp: int = 150
         catboost: int = 60
 
@@ -435,7 +436,8 @@ def _(mo):
     ## 3. 探索する
 
     試行の結果は `output/s14_tuning/optuna.db`（SQLite）に1回ずつ保存します。途中で止まっても、もう一度実行すれば続きから再開し、決めた回数に達したモデルは探索を飛ばします。
-    回数は、各モデルの1回の時間を測ってから決めました（LightGBM 約15秒、XGBoost 約40秒、MLP 約50秒、CatBoost 約280秒）。
+    回数は、各モデルの1回の時間を測ってから決めました（LightGBM 約15秒、XGBoost 約7秒、MLP 約50秒、CatBoost 約280秒）。
+    XGBoost だけは GPU で学習します（CPU では約40秒）。GPU と CPU では計算の細部が違い、同じ設定でもスコアが少し変わるので、探索も最後の学習も GPU にそろえます。
     """)
     return
 

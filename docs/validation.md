@@ -16,10 +16,19 @@ Maintained by the `kaggle-validation` skill. A score is trusted only after this 
 - Stratify / group / time column: time column = `取引時期`、2025年第1四半期以降を検証（fold 0）、それ以前を学習（fold -1）
 - Reason: test は train の直後の未来の期間なので、学習期間より後ろを検証に使う。直近2四半期は `価格情報区分` の構成も test に近い。複数 fold の時系列分割より説明が短く、講座の「CV は test の作り方に合わせる」をそのまま示せる。提出用モデルは全期間で学習し直す（2026-10-10 にユーザーが決定）。
 
+S14 以降のハイパーパラメータ探索（2026-10-17 にユーザーと決定、#38）:
+
+- 探索では何百回も設定を比べる。同じ holdout で選ぶと、holdout にたまたま合う設定が選ばれ、CV が楽観的になる。採用のルール（対応のある bootstrap の範囲が 0 を含まない）も当てにならなくなる。
+- そこで、もう1段内側の時系列分割で探す。2024Q2 までで学習し、2024Q3〜Q4 で各試行を採点する。2025Q1〜Q2 の holdout は、選んだ設定ごとに1回だけ使う。
+- 内側の分割の特徴量は 2024Q4 までの行だけから作る。価格指数と TE は 2024Q2 までの行から作る。目的変数を使わない集約特徴は 2024Q3〜Q4 を含み、それより後を含まない。holdout と同じ扱い。
+- 探索した設定の改善が、内側（2024Q3〜Q4）と holdout（2025Q1〜Q2）でどれだけ違うかをモデルごとに記録する。holdout での改善がずっと小さければ、探索が内側に合わせ込んだということ。
+- 内側の予測は、S15（#43）で2段目の学習行を増やすのにも使う。
+
 ## Fold file
 
 - `folds/holdout_2025q1.parquet` (never overwritten; new design = new name)
 - Command: `just folds holdout_2025q1 --strategy TimeHoldout --id-col id --time-col 取引時期 --holdout-from 2025年第1四半期 --n-splits 1`
+- `folds/time_2024q3_2025q1.parquet`（S14 以降、#38）: fold -1 は 2019Q1〜2024Q2、fold 0 は 2024Q3〜Q4（探索用）、fold 1 は 2025Q1〜Q2（holdout、`holdout_2025q1` の fold 0 と同じ行）
 
 ## Fold diagnostics
 
@@ -77,6 +86,12 @@ S9（2026-10-16）は CV -0.0039 に対して LB -0.0042 で、初めて LB の�
 
 S12（2026-10-17）は CV -0.0013 に対して LB -0.0008 で、LB は CV の 0.63 倍動いた。スタッキングの改善でも、単独モデルの段階と同じくらいの割合に戻った。6回分で直線を引き直すと LB ≈ 0.061 + 0.67 × CV で、直線からの外れの標準偏差は 0.0008。S13 の `stacker_average_with_tabpfn`（CV 0.1910）は、直線では 0.1899、S12 の実績からの差では 0.1895 の見込み。
 
+CV と LB の関係は、test の予測の後処理には使わない（2026-10-17 にユーザーと決定）。
+
+- 直線は提出ごとのスコアどうしの関係で、どの行をどちら向きに直せばよいかの情報を持たない。
+- LB の値から全体のずらし幅を決める方法（LB probing）は、Public には効く。予測を log で c だけずらすと RMSLE² が「元の値 + 2c × 平均誤差 + c²」になるので、2回の提出から Public の行の平均誤差を逆算できる。しかし、test の正解の情報を LB から取り出す方法で、教材にそぐわない。Public と Private の分け方も分からないので、Private に合う保証もない。
+- 訓練データだけで決める後処理にも、ほぼ余地がない。holdout では、予測が学習期間の終わりから離れるほど低めにずれる（CatBoost は1四半期先 -0.0036、2四半期先 -0.0086、TabPFN は -0.0020、-0.0064）。しかし、スタッキングが 1〜2 四半期先の平均のずれを学ぶので、その分は直っている（S13 の holdout 全体で +0.0002）。test で残るのは3四半期先の 2026Q1 の -0.0075 ほどで、直しても RMSLE は 0.0001 も変わらない。
+
 ## CV vs LB
 
 | exp | run | cv | public lb | gap | note |
@@ -95,3 +110,4 @@ S12（2026-10-17）は CV -0.0013 に対して LB -0.0008 で、LB は CV の 0.
 | name | strategy | reason for the new version | date |
 |---|---|---|---|
 | holdout_2025q1 | TimeHoldout (2025Q1〜Q2 を検証) | 最初の設計 | 2026-10-10 |
+| time_2024q3_2025q1 | TimeHoldout（境目2つ。2024Q3〜Q4 を探索用、2025Q1〜Q2 を holdout） | Optuna の探索で holdout を使い回さないため（#38） | 2026-10-17 |

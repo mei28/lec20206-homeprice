@@ -29,6 +29,7 @@ S14 以降のハイパーパラメータ探索（2026-10-17 にユーザーと�
 - `folds/holdout_2025q1.parquet` (never overwritten; new design = new name)
 - Command: `just folds holdout_2025q1 --strategy TimeHoldout --id-col id --time-col 取引時期 --holdout-from 2025年第1四半期 --n-splits 1`
 - `folds/time_2024q3_2025q1.parquet`（S14 以降、#38）: fold -1 は 2019Q1〜2024Q2、fold 0 は 2024Q3〜Q4（探索用）、fold 1 は 2025Q1〜Q2（holdout、`holdout_2025q1` の fold 0 と同じ行）
+- Command: `just folds time_2024q3_2025q1 --strategy TimeHoldout --id-col id --time-col 取引時期 --holdout-from 2024年第3四半期 2025年第1四半期 --n-splits 1`
 
 ## Fold diagnostics
 
@@ -40,6 +41,16 @@ S14 以降のハイパーパラメータ探索（2026-10-17 にユーザーと�
 | 0 (valid) | 21,691 | 2025Q1〜2025Q2 | 17.619 | 0.797 | 0.620 |
 
 検証期間は学習期間より log1p 価格の平均が 0.197 高い（価格水準で約 22% 高い）。時間トレンドを外挿できないモデルは、この差の分だけ低めに予測する。S4（時間トレンド）の論点。
+
+`time_2024q3_2025q1`（S14 以降、#38）。fold 1 の行は `holdout_2025q1` の fold 0 と一致し、fold -1 と 0 を合わせると `holdout_2025q1` の fold -1 と一致する（確認済み）。`check_folds` も通過。
+
+| fold | rows | period | mean log1p(price) | std log1p(price) | 成約価格情報の割合 |
+|---|---|---|---|---|---|
+| -1 (探索用の学習) | 162,701 | 2019Q1〜2024Q2 | 17.406 | 0.721 | 0.416 |
+| 0 (探索の評価) | 17,931 | 2024Q3〜2024Q4 | 17.572 | 0.766 | 0.537 |
+| 1 (holdout) | 21,691 | 2025Q1〜2025Q2 | 17.619 | 0.797 | 0.620 |
+
+成約の割合は fold 0 で 0.537 と、学習期間（0.416）と holdout（0.620）の間にある。探索で選ぶ設定は、成約の行が holdout より少ない状態で選ばれる。
 
 ## Leak checklist
 

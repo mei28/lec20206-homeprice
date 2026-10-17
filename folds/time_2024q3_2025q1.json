@@ -1,0 +1,17 @@
+{
+  "strategy": "TimeHoldout",
+  "n_splits": 1,
+  "seed": 42,
+  "target": null,
+  "group": null,
+  "time_col": "\u53d6\u5f15\u6642\u671f",
+  "stratify_bins": null,
+  "holdout_from": [
+    "2024\u5e74\u7b2c3\u56db\u534a\u671f",
+    "2025\u5e74\u7b2c1\u56db\u534a\u671f"
+  ],
+  "id_col": "id",
+  "source": "/home/mei/kaggle/lec20206-homeprice/input/utokyo-mlapp-2026-ex1/train.csv",
+  "n_rows": 202323,
+  "n_folds": 2
+}

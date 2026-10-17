@@ -17,7 +17,7 @@ def _():
     from pytorch_tabnet.tab_model import TabNetRegressor
     from tabpfn import TabPFNRegressor
 
-    from kgl import cv, feature_set, lesson, mlit, stacking
+    from kgl import cv, feature_set, incontext, lesson, mlit, stacking
     from kgl.env import comp_dir, detect
     from kgl.io import git_commit, validate_submission, write_submission
     from kgl.metrics import get_metric
@@ -34,6 +34,7 @@ def _():
         field,
         get_metric,
         git_commit,
+        incontext,
         lesson,
         mlit,
         mo,
@@ -374,6 +375,7 @@ def _(
     fs,
     holdout_ids,
     holdout_rmsle,
+    incontext,
     lesson,
     np,
     pl,
@@ -386,18 +388,12 @@ def _(
     y_real,
     y_real_refit,
 ):
-    def most_recent(rows, periods, n):
-        """The n rows of `rows` with the latest trade periods (ties keep row order), in row order."""
-        order = np.argsort(-periods[rows], kind="stable")
-        return np.sort(rows[order[:n]])
+    most_recent = incontext.most_recent
 
     def tabpfn_predict(X_context, y_context, X_apply):
         model = TabPFNRegressor(device="cuda", random_state=cfg.tabpfn.seed)
         model.fit(X_context, y_context)
-        step = cfg.tabpfn.predict_chunk
-        return np.concatenate([model.predict(X_apply.iloc[i : i + step]) for i in range(0, len(X_apply), step)]).astype(
-            np.float64
-        )
+        return incontext.predict_in_chunks(model, X_apply, cfg.tabpfn.predict_chunk)
 
     _context = most_recent(tr_idx, fs.X["trade_period"].to_numpy(), cfg.tabpfn.context_rows)
     tabpfn_holdout = tabpfn_predict(fs.X.iloc[_context], y_real[_context], fs.X.iloc[va_idx]) + fs.offset[va_idx]

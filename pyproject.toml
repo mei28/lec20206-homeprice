@@ -11,11 +11,11 @@ dependencies = [
     "pyarrow",
     "scikit-learn",
     "lightgbm",
-    "xgboost",
     "catboost",
     "tyro",
     "psutil",
     "optuna>=5.0.0",
+    "xgboost-cu12>=3.4.1",
 ]
 
 [dependency-groups]

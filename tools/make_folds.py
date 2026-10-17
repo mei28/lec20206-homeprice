@@ -4,6 +4,8 @@ Usage: uv run python tools/make_folds.py skf5_seed42 --strategy StratifiedKFold 
            --id-col PassengerId [--group col] [--time-col col] [--stratify-bins 10] [--n-splits 5] [--seed 42]
        uv run python tools/make_folds.py holdout_2025q1 --strategy TimeHoldout --id-col id \
            --time-col 取引時期 --holdout-from 2025年第1四半期
+       uv run python tools/make_folds.py time_2024q3_2025q1 --strategy TimeHoldout --id-col id \
+           --time-col 取引時期 --holdout-from 2024年第3四半期 2025年第1四半期
 """
 
 import os
@@ -70,7 +72,7 @@ class Args:
     group: str | None = None
     time_col: str | None = None
     stratify_bins: int | None = None
-    holdout_from: str | None = None
+    holdout_from: tuple[str, ...] | None = None
     n_splits: int = 5
     seed: int = 42
     comp: str = os.environ.get("COMP", "")
@@ -92,7 +94,7 @@ def main(args: Args) -> None:
         group=args.group,
         time_col=args.time_col,
         stratify_bins=args.stratify_bins,
-        holdout_from=args.holdout_from,
+        holdout_from=None if args.holdout_from is None else list(args.holdout_from),
     )
     print(out)
 

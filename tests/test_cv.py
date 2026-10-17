@@ -138,3 +138,20 @@ def test_time_holdout_validates_rows_from_the_cutoff_on(frame):
 def test_time_holdout_requires_the_cutoff(frame):
     with pytest.raises(ValueError, match="holdout_from"):
         cv.make_folds(frame, strategy="TimeHoldout", n_splits=1, seed=0, time_col="time")
+
+
+def test_time_holdout_with_several_cutoffs_numbers_the_blocks_in_time_order(frame):
+    folds = cv.make_folds(frame, strategy="TimeHoldout", n_splits=1, seed=0, time_col="time", holdout_from=[100, 150])
+    with_fold = frame.with_columns(fold=folds)
+    assert with_fold.filter(pl.col("fold") == -1)["time"].max() < 100
+    assert with_fold.filter(pl.col("fold") == 0)["time"].min() == 100
+    assert with_fold.filter(pl.col("fold") == 0)["time"].max() < 150
+    assert with_fold.filter(pl.col("fold") == 1)["time"].min() == 150
+    single = cv.make_folds(frame, strategy="TimeHoldout", n_splits=1, seed=0, time_col="time", holdout_from=150)
+    assert (folds == 1).to_list() == (single == 0).to_list()
+    cv.check_folds(with_fold, "fold", time_col="time")
+
+
+def test_time_holdout_cutoffs_must_increase(frame):
+    with pytest.raises(ValueError, match="increasing"):
+        cv.make_folds(frame, strategy="TimeHoldout", n_splits=1, seed=0, time_col="time", holdout_from=[150, 100])

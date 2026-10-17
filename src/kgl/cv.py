@@ -30,7 +30,8 @@ def make_folds(
     `time_col`, never shuffle, and mark the warm-up rows that are never validated with -1. A continuous
     target is binned into `stratify_bins` quantiles so stratified splitters can use it.
     `TimeHoldout` validates the rows whose `time_col` is at or after `holdout_from` (fold 0) and trains on
-    the rest (fold -1), so the cut falls on a period boundary instead of a row count.
+    the rest (fold -1), so the cut falls on a period boundary instead of a row count. Given increasing
+    cutoffs instead, fold k holds the rows from cutoff k up to the next one.
     """
     if strategy == "TimeHoldout":
         return _time_holdout(df, time_col, holdout_from)
@@ -59,8 +60,13 @@ def make_folds(
 def _time_holdout(df: pl.DataFrame, time_col: str | None, holdout_from: Any) -> pl.Series:
     if time_col is None or holdout_from is None:
         raise ValueError("TimeHoldout needs time_col and holdout_from")
-    is_val = (df[time_col] >= holdout_from).to_numpy()
-    return pl.Series("fold", np.where(is_val, 0, -1).astype(np.int64))
+    cutoffs = list(holdout_from) if isinstance(holdout_from, list | tuple) else [holdout_from]
+    if any(a >= b for a, b in zip(cutoffs[:-1], cutoffs[1:], strict=True)):
+        raise ValueError(f"TimeHoldout cutoffs must be strictly increasing, got {cutoffs}")
+    folds = np.full(df.height, -1, dtype=np.int64)
+    for k, cutoff in enumerate(cutoffs):
+        folds[(df[time_col] >= cutoff).to_numpy()] = k
+    return pl.Series("fold", folds)
 
 
 def _stratify_target(df: pl.DataFrame, target: str, bins: int | None) -> np.ndarray:

@@ -37,3 +37,15 @@ def test_run_reads_columns_whose_late_rows_are_not_numeric(frame, tmp_path):
     out = tmp_path / "folds" / "skf5_seed0.parquet"
     make_folds.run(train, out, id_col="id", strategy="KFold", n_splits=5, seed=0)
     assert cv.load_folds(out).height == frame.height
+
+
+def test_run_records_several_holdout_cutoffs(frame, tmp_path):
+    train = tmp_path / "train.csv"
+    frame.write_csv(train)
+    out = tmp_path / "folds" / "time_t100_t150.parquet"
+    make_folds.run(
+        train, out, id_col="id", strategy="TimeHoldout", n_splits=1, seed=0, time_col="time", holdout_from=[100, 150]
+    )
+    meta = cv.read_fold_meta(out)
+    assert meta["holdout_from"] == [100, 150] and meta["n_folds"] == 2
+    assert cv.load_folds(out)["fold"].value_counts().sort("fold")["count"].to_list() == [100, 50, 50]

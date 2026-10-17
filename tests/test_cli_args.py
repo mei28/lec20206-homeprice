@@ -47,3 +47,20 @@ def test_check_submission_has_no_positional_args():
 
 def test_exp_table_parses_include_debug_and_help_does_not_run_main():
     assert tyro.cli(exp_table.Args, args=["--include-debug"]).include_debug is True
+
+
+def test_make_folds_takes_several_holdout_cutoffs():
+    args = tyro.cli(
+        make_folds.Args,
+        args=[
+            "t",
+            "--strategy",
+            "TimeHoldout",
+            "--id-col",
+            "id",
+            "--holdout-from",
+            "2024年第3四半期",
+            "2025年第1四半期",
+        ],
+    )
+    assert args.holdout_from == ("2024年第3四半期", "2025年第1四半期")

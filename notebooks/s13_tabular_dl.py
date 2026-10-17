@@ -10,20 +10,17 @@ def _():
 
     import marimo as mo
     import numpy as np
-    import pandas as pd
     import polars as pl
     import psutil
     import torch
-    from pytorch_tabnet.tab_model import TabNetRegressor
     from tabpfn import TabPFNRegressor
 
-    from kgl import cv, feature_set, incontext, lesson, mlit, stacking
+    from kgl import cv, feature_set, incontext, lesson, mlit, stacking, tabnet
     from kgl.env import comp_dir, detect
     from kgl.io import git_commit, validate_submission, write_submission
     from kgl.metrics import get_metric
 
     return (
-        TabNetRegressor,
         TabPFNRegressor,
         asdict,
         comp_dir,
@@ -39,10 +36,10 @@ def _():
         mlit,
         mo,
         np,
-        pd,
         pl,
         psutil,
         stacking,
+        tabnet,
         torch,
         validate_submission,
         write_submission,
@@ -232,48 +229,6 @@ def _(mo):
 
 
 @app.cell
-def _(TabNetRegressor, asdict, cfg, np, pd, torch):
-    def tabnet_inputs(X_fit, X_apply):
-        """Category codes (0 = missing) and standardized numeric columns, with statistics from X_fit only."""
-        cat_cols = [c for c in X_fit.columns if isinstance(X_fit[c].dtype, pd.CategoricalDtype)]
-        num_cols = [c for c in X_fit.columns if c not in cat_cols]
-        median = X_fit[num_cols].median()
-        filled = X_fit[num_cols].fillna(median)
-        mean, std = filled.mean(), filled.std()
-        assert (std > 0).all(), std[std == 0]
-
-        def matrix(X):
-            num = ((X[num_cols].fillna(median) - mean) / std).to_numpy(dtype=np.float32)
-            cat = np.column_stack([X[c].cat.codes.to_numpy() + 1 for c in cat_cols]).astype(np.float32)
-            return np.hstack([cat, num])
-
-        cat_dims = [len(X_fit[c].cat.categories) + 1 for c in cat_cols]
-        return [matrix(X) for X in X_apply], cat_dims
-
-    def make_tabnet(cat_dims):
-        p = asdict(cfg.tabnet)
-        return TabNetRegressor(
-            n_d=p["n_d"],
-            n_a=p["n_a"],
-            n_steps=p["n_steps"],
-            gamma=p["gamma"],
-            lambda_sparse=p["lambda_sparse"],
-            cat_idxs=list(range(len(cat_dims))),
-            cat_dims=cat_dims,
-            cat_emb_dim=p["cat_emb_dim"],
-            optimizer_fn=torch.optim.Adam,
-            optimizer_params={"lr": p["lr"]},
-            scheduler_fn=torch.optim.lr_scheduler.StepLR,
-            scheduler_params={"step_size": p["lr_step_size"], "gamma": p["lr_gamma"]},
-            seed=p["seed"],
-            device_name="cuda",
-            verbose=0,
-        )
-
-    return make_tabnet, tabnet_inputs
-
-
-@app.cell
 def _(
     BASE,
     EXP,
@@ -285,11 +240,10 @@ def _(
     holdout_ids,
     holdout_rmsle,
     lesson,
-    make_tabnet,
     np,
     pl,
     sample,
-    tabnet_inputs,
+    tabnet,
     torch,
     tr_idx,
     va_idx,
@@ -301,31 +255,12 @@ def _(
 ):
     assert torch.cuda.is_available()
     commit = git_commit(env.root)
-    _fit_kwargs = {
-        "batch_size": cfg.tabnet.batch_size,
-        "virtual_batch_size": cfg.tabnet.virtual_batch_size,
-    }
-
-    (_X_tr, _X_va), _cat_dims = tabnet_inputs(fs.X.iloc[tr_idx], [fs.X.iloc[tr_idx], fs.X.iloc[va_idx]])
-    _center = float(y_real[tr_idx].mean())
-    _model = make_tabnet(_cat_dims)
-    _model.fit(
-        _X_tr,
-        (y_real[tr_idx] - _center).reshape(-1, 1),
-        eval_set=[(_X_va, (y_real[va_idx] - _center).reshape(-1, 1))],
-        eval_metric=["rmse"],
-        max_epochs=cfg.tabnet.max_epochs,
-        patience=cfg.tabnet.patience,
-        **_fit_kwargs,
+    _params = asdict(cfg.tabnet)
+    tabnet_epochs, _pred = tabnet.fit_holdout(fs.X, y_real, tr_idx, va_idx, _params, device="cuda")
+    tabnet_holdout = _pred + fs.offset[va_idx]
+    tabnet_test = (
+        tabnet.refit(fs.X_refit, y_real_refit, fs.X_test, _params, epochs=tabnet_epochs, device="cuda") + fs.offset_test
     )
-    tabnet_epochs = int(_model.best_epoch) + 1
-    tabnet_holdout = _model.predict(_X_va).ravel().astype(np.float64) + _center + fs.offset[va_idx]
-
-    (_X_all, _X_test), _cat_dims = tabnet_inputs(fs.X_refit, [fs.X_refit, fs.X_test])
-    _center_all = float(y_real_refit.mean())
-    _refit = make_tabnet(_cat_dims)
-    _refit.fit(_X_all, (y_real_refit - _center_all).reshape(-1, 1), max_epochs=tabnet_epochs, **_fit_kwargs)
-    tabnet_test = _refit.predict(_X_test).ravel().astype(np.float64) + _center_all + fs.offset_test
 
     tabnet_score = holdout_rmsle(tabnet_holdout, y_holdout)
     _out = lesson.record_run(

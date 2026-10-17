@@ -15,6 +15,7 @@ dependencies = [
     "catboost",
     "tyro",
     "psutil",
+    "optuna>=5.0.0",
 ]
 
 [dependency-groups]

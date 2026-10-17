@@ -25,6 +25,11 @@
 | s13_tabular_dl | stacker_average_with_tabpfn | 0.1910 |  | s12_black_magic | rmsle | S12 stacker average with tabpfn added (#36 #37) | output/s13_tabular_dl/stacker_average_with_tabpfn |
 | s13_tabular_dl | tabnet | 0.2201 |  | s12_black_magic | rmsle | TabNet on the S5 feature set (#36) | output/s13_tabular_dl/tabnet |
 | s13_tabular_dl | tabpfn | 0.1948 |  | s12_black_magic | rmsle | TabPFN-3.5, context = the 50000 most recent rows (#37) | output/s13_tabular_dl/tabpfn |
+| s14_tuning | catboost_tuned | 0.1994 |  | s13_tabular_dl | rmsle | catboost with the settings Optuna chose on 2024Q3-Q4 (#39) | output/s14_tuning/catboost_tuned |
+| s14_tuning | lightgbm_tuned | 0.2022 |  | s13_tabular_dl | rmsle | lightgbm with the settings Optuna chose on 2024Q3-Q4 (#40) | output/s14_tuning/lightgbm_tuned |
+| s14_tuning | mlp_tuned | 0.2117 |  | s13_tabular_dl | rmsle | mlp with the settings Optuna chose on 2024Q3-Q4 (#41) | output/s14_tuning/mlp_tuned |
+| s14_tuning | stacker_average_tuned | 0.1911 |  | s13_tabular_dl | rmsle | S13 stacker average with the Optuna-tuned LightGBM, CatBoost, XGBoost and MLP (#38-#42) | output/s14_tuning/stacker_average_tuned |
+| s14_tuning | xgboost_tuned | 0.1998 |  | s13_tabular_dl | rmsle | xgboost with the settings Optuna chose on 2024Q3-Q4 (#42) | output/s14_tuning/xgboost_tuned |
 | s1_baseline | floor_median | 0.8137 |  | none | rmsle | constant training median (#7) | output/s1_baseline/floor_median |
 | s1_baseline | lgbm_raw | 0.2988 |  | none | rmsle | minimal conversion, log1p target (#6, #8) | output/s1_baseline/lgbm_raw |
 | s3_features | drop_extremes | 0.2111 |  | s1_baseline | rmsle | adopted S3 features, extreme price-per-m2 rows dropped from training (#31) | output/s3_features/drop_extremes |

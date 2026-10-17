@@ -15,7 +15,6 @@ def _():
     import numpy as np
     import polars as pl
     import psutil
-    import xgboost as xgb
 
     from kgl import cv, feature_set, lesson, mlit
     from kgl.env import comp_dir, detect
@@ -43,7 +42,6 @@ def _():
         time,
         validate_submission,
         write_submission,
-        xgb,
     )
 
 
@@ -160,27 +158,22 @@ def _(mo):
 
 
 @app.cell
-def _(asdict, cb, cfg, fs, lesson, tr_idx, va_idx, xgb):
+def _(asdict, cb, cfg, fs, lesson, tr_idx, va_idx):
     CATEGORICAL = [c for c in fs.X.columns if str(fs.X[c].dtype) == "category"]
 
     def fit_xgb(y_real):
-        train = xgb.DMatrix(fs.X.iloc[tr_idx], label=y_real[tr_idx], enable_categorical=True)
-        valid = xgb.DMatrix(fs.X.iloc[va_idx], label=y_real[va_idx], enable_categorical=True)
-        booster = xgb.train(
+        return lesson.fit_xgb_holdout(
+            fs.X,
+            y_real,
+            tr_idx,
+            va_idx,
             asdict(cfg.xgb),
-            train,
-            cfg.max_rounds,
-            evals=[(valid, "holdout")],
+            max_rounds=cfg.max_rounds,
             early_stopping_rounds=cfg.early_stopping_rounds,
-            verbose_eval=False,
         )
-        pred = booster.predict(valid, iteration_range=(0, booster.best_iteration + 1))
-        return booster.best_iteration + 1, pred
 
     def refit_xgb(rounds, y_real_refit):
-        full = xgb.DMatrix(fs.X_refit, label=y_real_refit, enable_categorical=True)
-        booster = xgb.train(asdict(cfg.xgb), full, rounds)
-        return booster.predict(xgb.DMatrix(fs.X_test, enable_categorical=True))
+        return lesson.refit_xgb(fs.X_refit, y_real_refit, fs.X_test, asdict(cfg.xgb), rounds=rounds)
 
     def for_catboost(X):
         out = X.copy()

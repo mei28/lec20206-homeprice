@@ -11,6 +11,7 @@ import lightgbm as lgb
 import numpy as np
 import pandas as pd
 import polars as pl
+import xgboost as xgb
 from catboost import CatBoostRegressor
 
 from kgl.env import Env, run_dir
@@ -129,3 +130,36 @@ def refit_catboost(
     model = CatBoostRegressor(iterations=rounds, verbose=0, **params)
     model.fit(X_cat, y, cat_features=categorical)
     return np.asarray(model.predict(_for_catboost(X_test)[0]))
+
+
+def fit_xgb_holdout(
+    X: pd.DataFrame,
+    y: np.ndarray,
+    tr_idx: np.ndarray,
+    va_idx: np.ndarray,
+    params: dict[str, Any],
+    *,
+    max_rounds: int,
+    early_stopping_rounds: int,
+) -> tuple[int, np.ndarray]:
+    """Train XGBoost on `tr_idx`, stop early on `va_idx`; return the rounds used and the holdout predictions."""
+    train = xgb.DMatrix(X.iloc[tr_idx], label=y[tr_idx], enable_categorical=True)
+    valid = xgb.DMatrix(X.iloc[va_idx], label=y[va_idx], enable_categorical=True)
+    booster = xgb.train(
+        params,
+        train,
+        max_rounds,
+        evals=[(valid, "holdout")],
+        early_stopping_rounds=early_stopping_rounds,
+        verbose_eval=False,
+    )
+    pred = booster.predict(valid, iteration_range=(0, booster.best_iteration + 1))
+    return booster.best_iteration + 1, np.asarray(pred)
+
+
+def refit_xgb(
+    X: pd.DataFrame, y: np.ndarray, X_test: pd.DataFrame, params: dict[str, Any], *, rounds: int
+) -> np.ndarray:
+    """Train XGBoost on every row of X for `rounds` rounds and predict X_test."""
+    booster = xgb.train(params, xgb.DMatrix(X, label=y, enable_categorical=True), rounds)
+    return np.asarray(booster.predict(xgb.DMatrix(X_test, enable_categorical=True)))

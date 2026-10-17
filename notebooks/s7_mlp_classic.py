@@ -11,32 +11,17 @@ def _():
 
     import marimo as mo
     import numpy as np
-    import pandas as pd
     import polars as pl
     import psutil
-    from sklearn.compose import ColumnTransformer, TransformedTargetRegressor
-    from sklearn.ensemble import RandomForestRegressor
-    from sklearn.impute import SimpleImputer
-    from sklearn.linear_model import RidgeCV
-    from sklearn.neural_network import MLPRegressor
-    from sklearn.pipeline import make_pipeline
-    from sklearn.preprocessing import OneHotEncoder, StandardScaler
 
-    from kgl import cv, feature_set, lesson, mlit
+    from kgl import classic, cv, feature_set, lesson
     from kgl.env import comp_dir, detect
     from kgl.io import git_commit, validate_submission, write_submission
     from kgl.metrics import get_metric
 
     return (
-        ColumnTransformer,
-        MLPRegressor,
-        OneHotEncoder,
-        RandomForestRegressor,
-        RidgeCV,
-        SimpleImputer,
-        StandardScaler,
-        TransformedTargetRegressor,
         asdict,
+        classic,
         comp_dir,
         cv,
         dataclass,
@@ -46,11 +31,8 @@ def _():
         get_metric,
         git_commit,
         lesson,
-        make_pipeline,
-        mlit,
         mo,
         np,
-        pd,
         pl,
         psutil,
         time,
@@ -130,7 +112,7 @@ def _(dataclass, field, psutil):
 
 
 @app.cell
-def _(cfg, comp_dir, cv, detect, feature_set, mlit, np, pl):
+def _(cfg, classic, comp_dir, cv, detect, feature_set, np, pl):
     env = detect()
     data_dir = comp_dir(env, cfg.comp)
     train_raw = pl.read_csv(data_dir / cfg.train_file, infer_schema_length=0).with_columns(
@@ -152,16 +134,7 @@ def _(cfg, comp_dir, cv, detect, feature_set, mlit, np, pl):
         seed=cfg.seed,
         trend_quarters=cfg.trend_quarters,
     )
-
-    def numeric_extras(df):
-        """Columns a linear model needs as numbers: build year and age instead of the 建築年 category, and log area."""
-        return df.select(
-            mlit.build_year("建築年").cast(pl.Float64).alias("build_year_num"),
-            (mlit.trade_period("取引時期").floor() - mlit.build_year("建築年")).cast(pl.Float64).alias("age"),
-            mlit.area_m2("面積（㎡）").log().alias("log_area"),
-        ).to_pandas()
-
-    extras_train, extras_test = numeric_extras(train_folded), numeric_extras(test_raw)
+    extras_train, extras_test = classic.numeric_extras(train_folded), classic.numeric_extras(test_raw)
     y_real = fs.y_log - fs.offset
     y_real_refit = fs.y_log - fs.offset_refit
     assert np.isfinite(y_real).all()
@@ -199,29 +172,8 @@ def _(mo):
 
 
 @app.cell
-def _(extras_test, extras_train, fs, np, pd):
-    CATEGORICAL = [c for c in fs.X.columns if str(fs.X[c].dtype) == "category"]
-    ONE_HOT = [c for c in CATEGORICAL if c not in ("地区名", "最寄駅：名称", "建築年")]
-    COUNTS = [c for c in fs.X.columns if c.startswith("count_")]
-    NUMERIC = [c for c in fs.X.columns if c not in CATEGORICAL and c not in COUNTS]
-
-    def linear_frame(X, extras, *, with_counts=True):
-        """Inputs for Ridge and the MLP: numbers (counts as log1p), extras, and the small categories as strings."""
-        out = pd.concat([X[NUMERIC].reset_index(drop=True), extras.reset_index(drop=True)], axis=1)
-        if with_counts:
-            for c in COUNTS:
-                out[f"log_{c}"] = np.log1p(X[c].to_numpy().astype(float))
-        for c in ONE_HOT:
-            out[c] = X[c].cat.add_categories("NA").fillna("NA").astype(str).to_numpy()
-        return out
-
-    def forest_frame(X, extras):
-        """Inputs for RandomForest: numbers with NaN kept, and every category as its integer code (NaN if missing)."""
-        out = pd.concat([X.drop(columns=CATEGORICAL).reset_index(drop=True), extras.reset_index(drop=True)], axis=1)
-        for c in CATEGORICAL:
-            out[c] = X[c].cat.codes.astype(float).where(lambda codes: codes >= 0).to_numpy()
-        return out.astype(float)
-
+def _(classic, extras_test, extras_train, fs):
+    linear_frame, forest_frame = classic.linear_frame, classic.forest_frame
     frames = {
         "linear": (
             linear_frame(fs.X, extras_train),
@@ -239,49 +191,19 @@ def _(extras_test, extras_train, fs, np, pd):
             forest_frame(fs.X_test, extras_test),
         ),
     }
-    return ONE_HOT, frames
+    return (frames,)
 
 
 @app.cell
-def _(
-    ColumnTransformer,
-    MLPRegressor,
-    ONE_HOT,
-    OneHotEncoder,
-    RandomForestRegressor,
-    RidgeCV,
-    SimpleImputer,
-    StandardScaler,
-    TransformedTargetRegressor,
-    asdict,
-    cfg,
-    make_pipeline,
-):
-    def linear_preprocess(frame):
-        numeric = [c for c in frame.columns if c not in ONE_HOT]
-        return ColumnTransformer(
-            [
-                (
-                    "numeric",
-                    make_pipeline(SimpleImputer(strategy="median", add_indicator=True), StandardScaler()),
-                    numeric,
-                ),
-                ("one_hot", OneHotEncoder(handle_unknown="infrequent_if_exist", min_frequency=20), ONE_HOT),
-            ]
-        )
-
+def _(asdict, cfg, classic):
     def make_model(name, frame):
         """A fresh, unfitted model; every preprocessing step is inside, so it is fit on the training rows only."""
         if name in ("ridge", "ridge_no_counts"):
-            return make_pipeline(linear_preprocess(frame), RidgeCV(alphas=cfg.ridge_alphas))
+            return classic.make_ridge(frame, alphas=cfg.ridge_alphas)
         if name == "mlp":
-            # The target is standardized too, so the network starts near the right scale.
-            return TransformedTargetRegressor(
-                regressor=make_pipeline(linear_preprocess(frame), MLPRegressor(**asdict(cfg.mlp))),
-                transformer=StandardScaler(),
-            )
+            return classic.make_mlp(frame, asdict(cfg.mlp))
         if name == "random_forest":
-            return RandomForestRegressor(**asdict(cfg.forest))
+            return classic.make_forest(asdict(cfg.forest))
         raise KeyError(name)
 
     MODELS = {

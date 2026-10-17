@@ -84,3 +84,33 @@ def test_catboost_holdout_and_refit_handle_categories_with_missing_values():
     assert np.sqrt(np.mean((pred - y[va]) ** 2)) < 0.5
     test_pred = lesson.refit_catboost(X, y, X.iloc[:5], params, rounds=rounds)
     assert test_pred.shape == (5,)
+
+
+def _categorical_rows(n=2000, seed=0):
+    """A numeric feature, a categorical feature with an effect, and a target that depends on both."""
+    rng = np.random.default_rng(seed)
+    x = rng.normal(size=n)
+    city = pd.Categorical(rng.choice(["a", "b", "c"], size=n))
+    effect = pd.Series(city).map({"a": -1.0, "b": 0.0, "c": 1.0}).to_numpy()
+    X = pd.DataFrame({"x": x, "city": city})
+    return X, 2 * x + effect + rng.normal(scale=0.3, size=n)
+
+
+XGB_PARAMS = {"objective": "reg:squarederror", "eta": 0.1, "max_depth": 3, "nthread": 1, "seed": 0}
+
+
+def test_fit_xgb_holdout_stops_early_and_predicts_the_holdout():
+    X, y = _categorical_rows()
+    tr, va = np.arange(1500), np.arange(1500, 2000)
+    rounds, pred = lesson.fit_xgb_holdout(X, y, tr, va, XGB_PARAMS, max_rounds=2000, early_stopping_rounds=20)
+    assert 0 < rounds < 2000
+    assert pred.shape == (500,)
+    assert np.sqrt(np.mean((pred - y[va]) ** 2)) < 0.5
+
+
+def test_refit_xgb_trains_on_every_row_and_predicts_the_test_rows():
+    X, y = _categorical_rows()
+    X_test, y_test = _categorical_rows(n=300, seed=1)
+    pred = lesson.refit_xgb(X, y, X_test, XGB_PARAMS, rounds=200)
+    assert pred.shape == (300,)
+    assert np.sqrt(np.mean((pred - y_test) ** 2)) < 0.5

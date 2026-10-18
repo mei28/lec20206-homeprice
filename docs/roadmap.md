@@ -11,7 +11,7 @@ wrap-up when the order or the pending decisions change.
 | Our best public LB | 0.18848（S13 `stacker_average_with_tabpfn`、2026-10-18、CV 0.1910）。S12 は 0.19139、S9 は 0.19222、S6 は 0.19642、S5 は 0.19895、S4 は 0.19911、S3 は 0.20149 |
 | Best public notebook | なし（公開ノートブック0件、2026-10-10） |
 | LB top and medal line | S13 で1位（2026-10-18）。2位は FOLDER_CYBER の 0.19039、3位は babalabにちは の 0.19086、4位は Mitprägung の 0.19162。AI単独ベースライン（0.19726）は学生5チームが上回った。メダルなし |
-| CV of the current baseline | S17 スタッキングの平均（TabPFN の文脈を12万行に、市区町村ごとの TabPFN を追加）0.1870（holdout RMSLE）。S13 スタッキングの平均＋TabPFN 0.1910。S12 スタッキングの平均 0.1938、S10 スタッキング 0.1950、S9 スタッキング 0.1951。単独の最良は S17 TabPFN（直近12万行の文脈）0.1886、S13 TabPFN 0.1948、GBDT では S6 CatBoost 0.1990。S5 LightGBM 0.2035、S4 0.2050、S3 0.2090、S1 0.2988、下限 0.8137。S1 の leak 点検は clean |
+| CV of the current baseline | S20 スタッキングの平均（S17 に直近16万行の文脈の TabPFN を追加）0.1858（holdout RMSLE）。S17 スタッキングの平均（TabPFN の文脈を12万行に、市区町村ごとの TabPFN を追加）0.1870。S13 スタッキングの平均＋TabPFN 0.1910。S12 スタッキングの平均 0.1938、S10 スタッキング 0.1950、S9 スタッキング 0.1951。単独の最良は S20 TabPFN（直近16万行の文脈）0.1867、S17 TabPFN（直近12万行の文脈）0.1886、S13 TabPFN 0.1948、GBDT では S6 CatBoost 0.1990。S5 LightGBM 0.2035、S4 0.2050、S3 0.2090、S1 0.2988、下限 0.8137。S1 の leak 点検は clean |
 
 ## 方針（2026-10-10 にユーザーと決定）
 
@@ -55,7 +55,7 @@ wrap-up when the order or the pending decisions change.
 | S17 | `s17_tabpfn_context.py` | TabPFN の文脈を増やす・推定の回数を増やす（内側の分割で3〜4通りを手で比べる。重み 0.56 のメンバーなので、改善がスタッキングに出やすい） | #45 | 済（直近12万行の文脈で TabPFN 単独 0.1948 → 0.1886。市区町村ごとの TabPFN を2本目に足し、スタッキングの平均 0.1870、S13 より -0.0041。採用し、最終提出の候補に追加。全行の文脈は GPU のメモリ不足でやめた。leak 点検は clean） |
 | S18 | `s18_comparable_sales.py` | 似た物件の取引（取引事例比較法）をメンバーに足す。同じ地区の近い取引 k 件の平均 | #46 | 済（単独 0.2456。スタッキングの平均は S17 と差なし、重み 0、不採用。近くの取引の外れ方とスタッキングの外れ方の相関はほぼ 0） |
 | S19 | `s19_tabpfn_groups.py` | TabPFN を価格情報区分・面積の帯・地域ごとに分けてメンバーに足す。S13 のメンバー自身の 2024Q3〜Q4 の予測を作り、2段目の学習行にも足す | #47 #48 | 済（グループの文脈は GPU のメモリのため2万行。足したのは地域ごとだけで、スタッキングの平均は S17 と差なし（-0.00005）、2024Q3〜Q4 の行を足しても -0.00010 で偶然の範囲。不採用） |
-| S20 | `s20_tabpfn_160k.py` | TabPFN の文脈を16万行にする（全行は 8GB の GPU に載らなかった） | #49 | 10/18〜19 の夜、GPU で実行（別の処理が終わってから） |
+| S20 | `s20_tabpfn_160k.py` | TabPFN の文脈を16万行にする（全行は 8GB の GPU に載らなかった） | #49 | 済（TabPFN 単独 0.1886 → 0.1867。S17 のスタッキングの平均に足して 0.1858、S17 より -0.0011 で範囲が 0 をまたがない。採用し、最終提出の候補に追加。重みは16万行 0.82、12万行 0 で、実質は入れ替え。leak 点検は clean） |
 
 提出は段階ごとに最大1回で、出すかどうかはユーザーが決める。S1 は「もう少し向上させてから」で見送り（2026-10-10）。提出枠は 10/10〜10/21 の12回。最初から最良を出さず、段階の順に1日1回ずつ少しずつ出す（2026-10-11 ユーザー）。
 
@@ -63,8 +63,8 @@ wrap-up when the order or the pending decisions change.
 
 ## Decisions for the user
 
-- 次の提出をいつ、どれにするか（S3 は 2026-10-10、S4 は 2026-10-11、S5 は 2026-10-14、S6 は 2026-10-15、S9 は 2026-10-16、S12 は 2026-10-17、S13 は 2026-10-18 に提出済み。残りの枠は 10/19〜10/21 の3回。S17 `stacker_average_s17`（CV 0.1870）が次の候補で、LB の見込みは 7点の直線で 0.1866、S13 の実績からの差で 0.1844〜0.1855。S14〜S16 と S18 はスタッキングの平均が変わらなかった。提出はユーザーの OK を待つ）。作成・検査済みの提出ファイル: S1 `lgbm_raw`（0.2988）、S3 `plus_notation`（0.2090）、S4 `hedonic_linear`（0.2050）、S5 `all_three`（0.2035）、S6 `catboost`（0.1990）、S6 `xgboost`（0.2103）、S7 `mlp`（0.2168）ほか、S9 `stacking`（0.1951）・`weighted_average`（0.1960）・`simple_average`（0.2054）、S10 `stacking`（0.1950）・`weighted_average`（0.1959）・`lightgbm_seed_avg`（0.2022）・`catboost_long`（0.1990）、S12 `stacker_average`（0.1938）、S13 `stacker_average_with_tabpfn`（0.1910）・`tabpfn`（0.1948）、S17 `stacker_average_s17`（0.1870）・`tabpfn_context_large`（0.1886）
-- 最終2提出の候補: S17 `stacker_average_s17`（CV 0.1870、最良）、S13 `stacker_average_with_tabpfn`（0.1910、LB 0.18848）、S12 `stacker_average`（0.1938）、S10 `stacking`（0.1950）、S10 `weighted_average`（0.1959、重みが0以上で保守的）。どちらも S4 のヘドニック指数の外挿が前提。S4 の提出で CV と LB は同じ向きに動いた（CV -0.0040、LB -0.0024、#3）
+- 次の提出をいつ、どれにするか（S3 は 2026-10-10、S4 は 2026-10-11、S5 は 2026-10-14、S6 は 2026-10-15、S9 は 2026-10-16、S12 は 2026-10-17、S13 は 2026-10-18 に提出済み。残りの枠は 10/19〜10/21 の3回。10/19 は S17 `stacker_average_s17`（CV 0.1870）を出す（2026-10-18 にユーザーが OK、9時以降の一言を待つ）。LB の見込みは 7点の直線で 0.1866、S13 の実績からの差で 0.1844〜0.1855。10/20 の候補は S20 `stacker_average_s20`（CV 0.1858）で、LB の見込みは直線で 0.1858、S13 の実績からの差で 0.1833〜0.1847。10/21 の候補はまだない。S14〜S16、S18、S19 はスタッキングの平均が変わらなかった。提出はユーザーの OK を待つ）。作成・検査済みの提出ファイル: S1 `lgbm_raw`（0.2988）、S3 `plus_notation`（0.2090）、S4 `hedonic_linear`（0.2050）、S5 `all_three`（0.2035）、S6 `catboost`（0.1990）、S6 `xgboost`（0.2103）、S7 `mlp`（0.2168）ほか、S9 `stacking`（0.1951）・`weighted_average`（0.1960）・`simple_average`（0.2054）、S10 `stacking`（0.1950）・`weighted_average`（0.1959）・`lightgbm_seed_avg`（0.2022）・`catboost_long`（0.1990）、S12 `stacker_average`（0.1938）、S13 `stacker_average_with_tabpfn`（0.1910）・`tabpfn`（0.1948）、S17 `stacker_average_s17`（0.1870）・`tabpfn_context_large`（0.1886）、S20 `stacker_average_s20`（0.1858）・`tabpfn_160k`（0.1867）
+- 最終2提出の候補: S20 `stacker_average_s20`（CV 0.1858、最良。最終に選ぶには 10/20 までに提出しておく）、S17 `stacker_average_s17`（0.1870）、S13 `stacker_average_with_tabpfn`（0.1910、LB 0.18848）、S12 `stacker_average`（0.1938）、S10 `stacking`（0.1950）、S10 `weighted_average`（0.1959、重みが0以上で保守的）。どちらも S4 のヘドニック指数の外挿が前提。S4 の提出で CV と LB は同じ向きに動いた（CV -0.0040、LB -0.0024、#3）
 - S9: stacking は「2025Q1 で fit して Q2 で採点、逆向きも」の方式で進める（2026-10-10、ユーザーの「ガンガン進めていい」を受けて決定）
 - holdout の集約特徴の非対称（S5 から、目的変数は使わない）: 地区・駅の集約と件数に holdout の行が入るため、CV が 0.0004 楽観的になる。全メンバーに同じようにかかるので直さず記録した（2026-10-16、`docs/reviews/20261016-s13_tabular_dl-leak.md`）。直すなら全メンバーの再学習が要る
 - S14 以降の進め方（2026-10-17 にユーザーと決定）: ハイパーパラメータ探索は、内側の分割（2024Q2 までで学習、2024Q3〜Q4 で評価）で行い、holdout は選んだ設定ごとに1回だけ使う（#38）。探索の対象は CatBoost、LightGBM、MLP、XGBoost（#39〜#42）。RandomForest と Ridge はモデルの種類の限界で弱いので、TabNet は GPU で結果がばらつくので、TabPFN は1回の予測に1.5時間かかるので、探索しない。S15 で2段目の学習行を増やす（#43）。このパソコンの空いている計算資源（GPU と、別の処理が使っていない CPU）を使ってよい

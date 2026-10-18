@@ -44,6 +44,8 @@
 | s19_tabpfn_groups | tabpfn_by_region | 0.2014 |  | s18_comparable_sales | rmsle | TabPFN-3.5, one per group, variant by_region (#47) | output/s19_tabpfn_groups/tabpfn_by_region |
 | s1_baseline | floor_median | 0.8137 |  | none | rmsle | constant training median (#7) | output/s1_baseline/floor_median |
 | s1_baseline | lgbm_raw | 0.2988 |  | none | rmsle | minimal conversion, log1p target (#6, #8) | output/s1_baseline/lgbm_raw |
+| s20_tabpfn_160k | stacker_average_s20 | 0.1858 |  | s19_tabpfn_groups | rmsle | S17 stacker average with the 160,000-row TabPFN (add) (#49) | output/s20_tabpfn_160k/stacker_average_s20 |
+| s20_tabpfn_160k | tabpfn_160k | 0.1867 |  | s19_tabpfn_groups | rmsle | TabPFN-3.5 with the most recent 160,000 rows as context (#49) | output/s20_tabpfn_160k/tabpfn_160k |
 | s3_features | drop_extremes | 0.2111 |  | s1_baseline | rmsle | adopted S3 features, extreme price-per-m2 rows dropped from training (#31) | output/s3_features/drop_extremes |
 | s3_features | location_codes | 0.2168 |  | s1_baseline | rmsle | locations as codes (#13) | output/s3_features/location_codes |
 | s3_features | minus_type | 0.2107 |  | s1_baseline | rmsle | without 価格情報区分 (#14) | output/s3_features/minus_type |

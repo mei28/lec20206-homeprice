@@ -54,12 +54,16 @@ def write_submission(run_dir: Path, sub: pl.DataFrame) -> Path:
 
 
 def validate_submission(sub: pl.DataFrame, sample: pl.DataFrame, id_col: str) -> None:
-    """Assert the submission has the sample's shape: same rows, columns, id order, and no nulls."""
+    """Assert the submission has the sample's shape: same rows, columns, id order, no nulls, and finite floats."""
     assert sub.height == sample.height, f"rows: got {sub.height}, sample has {sample.height}"
     assert sub.columns == sample.columns, f"columns: got {sub.columns}, sample has {sample.columns}"
     assert sub[id_col].to_list() == sample[id_col].to_list(), f"id order differs from the sample ({id_col})"
     nulls = {c: n for c, n in zip(sub.columns, sub.null_count().row(0), strict=True) if n}
     assert not nulls, f"null values in submission: {nulls}"
+    # polars keeps NaN and inf as values, so the null check above lets them through.
+    floats = [c for c, dtype in sub.schema.items() if dtype.is_float()]
+    non_finite = {c: n for c in floats if (n := int((~sub[c].is_finite()).sum()))}
+    assert not non_finite, f"non-finite values in submission: {non_finite}"
 
 
 def git_commit(repo: Path) -> str:

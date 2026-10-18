@@ -57,6 +57,13 @@ def test_validate_submission_rejects_nulls():
         io.validate_submission(sub, _sample(), "PassengerId")
 
 
+@pytest.mark.parametrize("bad", [float("nan"), float("inf"), float("-inf")])
+def test_validate_submission_rejects_non_finite_predictions(bad):
+    sub = _sample().with_columns(pl.Series("Survived", [0.1, bad, 0.3]))
+    with pytest.raises(AssertionError, match="non-finite"):
+        io.validate_submission(sub, _sample(), "PassengerId")
+
+
 def test_git_commit_is_the_head_sha_of_the_given_repo(tmp_path):
     import subprocess
 

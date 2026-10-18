@@ -264,7 +264,7 @@ def _(mo):
     止まっても続きから再開します。`s13` は S15 で同じ手順で作った予測があるので、それを使います。
 
     スタッキングは、S15 の 2024Q3〜Q4 の予測（S14 で探索した LightGBM・CatBoost・XGBoost・MLP、S7 の RandomForest と Ridge、S13 の TabPFN）で組みます。
-    2024Q3 と Q4 で交互に学習して採点する、S13 と同じ手順です。TabPFN を入れ替えた場合と、足した場合の両方を見ます。
+    2024Q3 と Q4 で交互に学習して採点する、S13 と同じ手順です。まず TabPFN を入れ替えた場合を比べ、次の節で、選んだものの上にもう1本足した場合を見ます。
     """)
     return
 
@@ -319,22 +319,19 @@ def _(block_members, fs_in, found_stackers, holdout_rmsle, in_q3, inner_preds, n
         return stacking.stacker_average(H, H, _rows, _rows, y_block, in_q3, found_stackers(len(members)))[0]
 
     _base = holdout_rmsle(block_stack(block_members), y_block)
-    _table = []
-    for _name, _pred in inner_preds.items():
-        _replaced = block_stack(block_members | {"tabpfn": _pred})
-        _added = block_stack(block_members | {f"tabpfn_{_name}": _pred}) if _name != "s13" else _replaced
-        _table.append(
+    inner_table = pl.DataFrame(
+        [
             {
                 "variant": _name,
                 "TabPFN alone": holdout_rmsle(_pred, y_block),
-                "stack, TabPFN replaced": holdout_rmsle(_replaced, y_block),
-                "stack, TabPFN added": holdout_rmsle(_added, y_block),
+                "stack, TabPFN replaced": holdout_rmsle(block_stack(block_members | {"tabpfn": _pred}), y_block),
             }
-        )
-    inner_table = pl.DataFrame(_table)
+            for _name, _pred in inner_preds.items()
+        ]
+    )
     assert np.isclose(inner_table["stack, TabPFN replaced"][0], _base)
     inner_table
-    return (inner_table,)
+    return block_stack, inner_table
 
 
 @app.cell
@@ -351,16 +348,28 @@ def _(mo):
 
 
 @app.cell
-def _(inner_table, pl):
-    _others = inner_table.filter(pl.col("variant") != "s13")
+def _(block_members, block_stack, holdout_rmsle, inner_preds, inner_table, pl, y_block):
     _s13 = inner_table.filter(pl.col("variant") == "s13")["stack, TabPFN replaced"][0]
-    _best = _others.sort("stack, TabPFN replaced").row(0, named=True)
+    _best = inner_table.filter(pl.col("variant") != "s13").sort("stack, TabPFN replaced").row(0, named=True)
     replacement = _best["variant"] if _best["stack, TabPFN replaced"] < _s13 else "s13"
-    _added = _others.filter(pl.col("variant") != replacement).sort("stack, TabPFN added").row(0, named=True)
-    _reference = _s13 if replacement == "s13" else _best["stack, TabPFN replaced"]
+    _reference = inner_table.filter(pl.col("variant") == replacement)["stack, TabPFN replaced"][0]
+
+    # The second TabPFN is added on top of the chosen replacement, the stack it would join.
+    _chosen = block_members | {"tabpfn": inner_preds[replacement]}
+    addition_table = pl.DataFrame(
+        [
+            {
+                "variant": _name,
+                "stack, TabPFN added": holdout_rmsle(block_stack(_chosen | {f"tabpfn_{_name}": _pred}), y_block),
+            }
+            for _name, _pred in inner_preds.items()
+            if _name not in ("s13", replacement)
+        ]
+    )
+    _added = addition_table.sort("stack, TabPFN added").row(0, named=True)
     addition = _added["variant"] if _added["stack, TabPFN added"] < _reference else None
     {"replacement": replacement, "addition": addition}
-    return addition, replacement
+    return addition, addition_table, replacement
 
 
 @app.cell
@@ -558,22 +567,42 @@ def _(
 
 
 @app.cell
-def _(addition, holdout_table, inner_table, mo, pl, replacement, restack_change, restack_score, s17_weights):
+def _(
+    addition,
+    addition_table,
+    holdout_table,
+    inner_table,
+    mo,
+    pl,
+    replacement,
+    restack_change,
+    restack_score,
+    s17_weights,
+):
     def _score(run):
         return holdout_table.filter(pl.col("run") == run)["holdout_rmsle"][0]
 
     _inner = "\n".join(
-        f"    | `{r['variant']}` | {r['TabPFN alone']:.4f} | {r['stack, TabPFN replaced']:.4f} | {r['stack, TabPFN added']:.4f} |"
+        f"    | `{r['variant']}` | {r['TabPFN alone']:.4f} | {r['stack, TabPFN replaced']:.4f} |"
         for r in inner_table.iter_rows(named=True)
+    )
+    _added = "\n".join(
+        f"    | `{r['variant']}` | {r['stack, TabPFN added']:.4f} |" for r in addition_table.iter_rows(named=True)
     )
     mo.md(f"""
     ## 4. 結果
 
     内側の分割（2024Q3〜Q4）:
 
-    | variant | TabPFN 単独 | スタッキング（入れ替え） | スタッキング（追加） |
-    |---|---|---|---|
+    | variant | TabPFN 単独 | スタッキング（入れ替え） |
+    |---|---|---|
 {_inner}
+
+    `{replacement}` に入れ替えたうえで、もう1本足したとき:
+
+    | variant | スタッキング（追加） |
+    |---|---|
+{_added}
 
     - 選んだもの: 置き換え `{replacement}`、追加 `{addition}`
     - holdout（2025Q1〜Q2）: S13 の TabPFN {_score("s13 tabpfn"):.4f}

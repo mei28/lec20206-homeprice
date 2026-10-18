@@ -304,7 +304,8 @@ def _(mo):
     ## 1. 内側の分割で k と距離を選ぶ
 
     2024Q2 までの取引から 2024Q3〜Q4 を当てます。距離の重みは、建築年・log 面積・駅からの分・取引時期・価格情報区分の順です。
-    単独のスコアだけでなく、S15 の 2024Q3〜Q4 の全メンバーの予測に足してスタッキングを組み、その良さで選びます。
+    単独のスコアだけでなく、S17 で選んだメンバーの 2024Q3〜Q4 の予測に足してスタッキングを組み、その良さで選びます。
+    メンバーの予測は S15 で作ったもので、TabPFN だけ S17 で選んだ文脈のものに替えます。
     欲しいのは「単独で強いメンバー」ではなく「スタッキングに新しい情報を持ち込むメンバー」だからです。
     """)
     return
@@ -326,6 +327,7 @@ def _(
     np,
     numbers_in,
     pl,
+    read_metrics,
     stacking,
     tr_in,
     va_in,
@@ -334,6 +336,19 @@ def _(
     _block = pl.read_parquet(env.output_dir / cfg.block_stage / "block_predictions.parquet")
     assert _block[cfg.id_col].to_list() == block_ids
     block_members = {c: _block[c].to_numpy() for c in _block.columns if c not in (cfg.id_col, cfg.target, "fold")}
+
+    def _s17_inner(variant):
+        _saved = pl.read_parquet(env.output_dir / cfg.s17_stage / f"inner_{variant}.parquet")
+        assert _saved[cfg.id_col].to_list() == block_ids
+        return _saved["pred"].to_numpy()
+
+    # S17's members on 2024Q3-Q4: S15's predictions with TabPFN swapped for the context S17 chose.
+    _s17 = read_metrics(env.output_dir / cfg.s17_stage / "stacker_average_s17" / "metrics.json").config
+    if _s17["replacement"] != "s13":
+        block_members["tabpfn"] = _s17_inner(_s17["replacement"])
+    if _s17["addition"] is not None:
+        block_members[f"tabpfn_{_s17['addition']}"] = _s17_inner(_s17["addition"])
+    assert list(block_members) == _s17["members"]
     _rows = stacking.row_features(fs_in.X.iloc[va_in])
 
     def block_stack(members):

@@ -34,6 +34,11 @@
 | s16_tabnet_tuning | stacker_average_tuned_with_tabnet | 0.1912 |  | s15_more_stack_rows | rmsle | S14 stacker average with the tuned TabNet added (#44) | output/s16_tabnet_tuning/stacker_average_tuned_with_tabnet |
 | s16_tabnet_tuning | tabnet_s13_settings_seed_avg | 0.2105 |  | s15_more_stack_rows | rmsle | S13 TabNet settings, averaged over seeds [0, 1, 2] (#44) | output/s16_tabnet_tuning/tabnet_s13_settings_seed_avg |
 | s16_tabnet_tuning | tabnet_tuned_seed_avg | 0.2082 |  | s15_more_stack_rows | rmsle | TabNet with the settings Optuna chose on 2024Q3-Q4, averaged over seeds [0, 1, 2] (#44) | output/s16_tabnet_tuning/tabnet_tuned_seed_avg |
+| s17_tabpfn_context | stacker_average_s17 | 0.1870 |  | s16_tabnet_tuning | rmsle | S13 stacker average, TabPFN replaced by context_large, added by_municipality (#45) | output/s17_tabpfn_context/stacker_average_s17 |
+| s17_tabpfn_context | tabpfn_by_municipality | 0.1954 |  | s16_tabnet_tuning | rmsle | TabPFN-3.5, variant by_municipality (#45) | output/s17_tabpfn_context/tabpfn_by_municipality |
+| s17_tabpfn_context | tabpfn_context_large | 0.1886 |  | s16_tabnet_tuning | rmsle | TabPFN-3.5, variant context_large (#45) | output/s17_tabpfn_context/tabpfn_context_large |
+| s18_comparable_sales | comparable_sales | 0.2456 |  | s17_tabpfn_context | rmsle | Comparable sales, k=5, weights [2.0, 1.0, 0.5, 0.5, 1.0] (#46) | output/s18_comparable_sales/comparable_sales |
+| s18_comparable_sales | stacker_average_with_comparable | 0.1869 |  | s17_tabpfn_context | rmsle | S17 stacker average with comparable sales added (#46) | output/s18_comparable_sales/stacker_average_with_comparable |
 | s1_baseline | floor_median | 0.8137 |  | none | rmsle | constant training median (#7) | output/s1_baseline/floor_median |
 | s1_baseline | lgbm_raw | 0.2988 |  | none | rmsle | minimal conversion, log1p target (#6, #8) | output/s1_baseline/lgbm_raw |
 | s3_features | drop_extremes | 0.2111 |  | s1_baseline | rmsle | adopted S3 features, extreme price-per-m2 rows dropped from training (#31) | output/s3_features/drop_extremes |

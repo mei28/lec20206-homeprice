@@ -60,12 +60,16 @@ def _(mo):
 
     | 名前 | グループ | 文脈 |
     |---|---|---|
-    | `by_price_type` | 価格情報区分（成約価格と取引価格） | グループごとの直近5万行 |
-    | `by_area_band` | 面積の帯（30㎡未満、30〜60㎡、60㎡以上） | グループごとの直近5万行 |
-    | `by_region` | 23区とそれ以外 | グループごとの直近5万行 |
+    | `by_price_type` | 価格情報区分（成約価格と取引価格） | グループごとの直近2万行 |
+    | `by_area_band` | 面積の帯（30㎡未満、30〜60㎡、60㎡以上） | グループごとの直近2万行 |
+    | `by_region` | 23区とそれ以外 | グループごとの直近2万行 |
 
     成約価格と取引価格は集め方が違い、30㎡未満のワンルームは投資用の別の市場で取引されます。
     同じ種類の取引だけを見せると、TabPFN の外し方が変わるはずです。駅や地区まで細かく分けると、文脈のない行が出るので使いません。
+
+    文脈を2万行にしたのは、GPU のメモリのためです。TabPFN は、1回に渡された行が多いときだけ行を分けて処理し、
+    メモリが足りなければ分ける幅を半分にしてやり直します。グループの文脈が4〜5万行だと「分けるほど多くはない」と判断されて
+    そのまま処理し、8GB の GPU では足りなくなりました。2万行なら、どのグループでも分けずに収まります。
 
     もう1つ、S15 の「2段目の学習に 2024Q3〜Q4 の行も使う」を、S17 のメンバーでやり直します（#48）。
     S15 では -0.00017 で、採用のルールにわずかに届きませんでした。
@@ -99,11 +103,14 @@ def _(dataclass, field, psutil):
     def _variants():
         # Each variant fits one TabPFN per group, with that group's most recent rows as context. Every group of
         # the holdout and the test has rows in its context; stations and districts would leave 14-232 rows without.
-        # 6,000 rows per call ran out of the 8 GB GPU's memory at 50,000 context rows (2026-10-18); 2,000 is S13's.
+        # TabPFN-3.5 splits a call into row chunks, and halves them when the GPU runs out of memory, only when the
+        # call holds more rows than one chunk (about 50,000 here; more when it drops empty columns, as it does for
+        # contract prices). A group context of 38,000-50,000 rows plus the predicted rows stays below that and
+        # ran out of the 8 GB unchunked (probes on 2026-10-18). 20,000 + 2,000 rows peak at 4.1 GiB in every group.
         return {
-            "by_price_type": {"group": "price_type", "context_rows": 50000, "predict_chunk": 2000},
-            "by_area_band": {"group": "area_band", "context_rows": 50000, "predict_chunk": 2000},
-            "by_region": {"group": "region", "context_rows": 50000, "predict_chunk": 2000},
+            "by_price_type": {"group": "price_type", "context_rows": 20000, "predict_chunk": 2000},
+            "by_area_band": {"group": "area_band", "context_rows": 20000, "predict_chunk": 2000},
+            "by_region": {"group": "region", "context_rows": 20000, "predict_chunk": 2000},
         }
 
     def _member_runs():

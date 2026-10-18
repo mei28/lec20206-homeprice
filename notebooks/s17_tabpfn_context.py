@@ -56,14 +56,13 @@ def _(mo):
 
     TabPFN は、学習データの行を「文脈」として読み込み、その場で予測するモデルです。S13 では、東京全体の直近5万行を文脈にしました。
     5万行は TabPFN-3.5 が公式に対応する上限で、この 8GB の GPU にも既定の設定でちょうど収まる大きさでした。
-    この段階では、文脈の選び方と予測の回数を変えた5通りを比べます。
+    この段階では、文脈の選び方と予測の回数を変えた4通りを比べます。
 
     | 名前 | 文脈 | 変えたところ |
     |---|---|---|
     | `s13` | 東京全体の直近5万行 | S13 のまま（比べる基準） |
     | `estimators_16` | 東京全体の直近5万行 | 予測の回数（特徴量の並べ方を変えた予測の平均）を 8 → 16 |
     | `context_large` | 東京全体の直近12万行 | メモリを節約する設定にして、上限を超える行数を読ませる |
-    | `context_all` | 東京全体の、使える行すべて | 同じ設定で、学習期間の行を全部読ませる |
     | `by_municipality` | 同じ市区町村の行だけ（全期間） | 市区町村ごとに TabPFN を分ける |
 
     最後の `by_municipality` は、近くの取引だけを見せる案です。大きなデータで TabPFN を使うとき、予測する行に近い行だけを文脈にすると
@@ -103,6 +102,9 @@ def _(dataclass, field, psutil):
     # 2024Q3-Q4: on 1,000 rows, 50,000 context rows scored 0.1791 and 80,000 0.1769; on 6,000 rows, 80,000 scored
     # 0.1788 and 120,000 0.1761 (peak 7.2 GiB, 860 s per call). A call's time is mostly the context, not the rows
     # it predicts (80,000 rows: 388 s for 1,000 rows, 411 s for 6,000), so the variants predict in large chunks.
+    # Every row up to the cutoff (162,701 rows on the inner split) ran out of memory at 15,000 rows per call: the
+    # predicted distributions of the rows in a call take about 2 GB. Smaller chunks mean more calls, each reading
+    # the whole context again (an estimated 10 hours for the holdout and the test), so 120,000 is the largest here.
     LARGE = {"fit_mode": "low_memory", "memory_saving_mode": True, "ignore_pretraining_limits": True}
 
     def _variants():
@@ -119,14 +121,6 @@ def _(dataclass, field, psutil):
                 "by_municipality": False,
                 "options": LARGE,
                 "predict_chunk": 12000,
-            },
-            # Every row up to the cutoff: 162,701 on the inner split, 180,632 for the holdout, 202,323 for the test.
-            # Added after context_large scored 0.1830 against 0.1890 for s13 on the inner split (2026-10-18).
-            "context_all": {
-                "context_rows": 1_000_000,
-                "by_municipality": False,
-                "options": LARGE,
-                "predict_chunk": 15000,
             },
             "by_municipality": {"context_rows": 50000, "by_municipality": True, "options": {}, "predict_chunk": 6000},
         }

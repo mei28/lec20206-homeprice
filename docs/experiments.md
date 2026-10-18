@@ -39,6 +39,9 @@
 | s17_tabpfn_context | tabpfn_context_large | 0.1886 |  | s16_tabnet_tuning | rmsle | TabPFN-3.5, variant context_large (#45) | output/s17_tabpfn_context/tabpfn_context_large |
 | s18_comparable_sales | comparable_sales | 0.2456 |  | s17_tabpfn_context | rmsle | Comparable sales, k=5, weights [2.0, 1.0, 0.5, 0.5, 1.0] (#46) | output/s18_comparable_sales/comparable_sales |
 | s18_comparable_sales | stacker_average_with_comparable | 0.1869 |  | s17_tabpfn_context | rmsle | S17 stacker average with comparable sales added (#46) | output/s18_comparable_sales/stacker_average_with_comparable |
+| s19_tabpfn_groups | stacker_average_s19 | 0.1869 |  | s18_comparable_sales | rmsle | S17 members plus TabPFN by group (#47) | output/s19_tabpfn_groups/stacker_average_s19 |
+| s19_tabpfn_groups | stacker_average_s19_with_block | 0.1869 |  | s18_comparable_sales | rmsle | stacker_average_s19 with 2024Q3-Q4 added to every stacker's training rows (#47, #48) | output/s19_tabpfn_groups/stacker_average_s19_with_block |
+| s19_tabpfn_groups | tabpfn_by_region | 0.2014 |  | s18_comparable_sales | rmsle | TabPFN-3.5, one per group, variant by_region (#47) | output/s19_tabpfn_groups/tabpfn_by_region |
 | s1_baseline | floor_median | 0.8137 |  | none | rmsle | constant training median (#7) | output/s1_baseline/floor_median |
 | s1_baseline | lgbm_raw | 0.2988 |  | none | rmsle | minimal conversion, log1p target (#6, #8) | output/s1_baseline/lgbm_raw |
 | s3_features | drop_extremes | 0.2111 |  | s1_baseline | rmsle | adopted S3 features, extreme price-per-m2 rows dropped from training (#31) | output/s3_features/drop_extremes |

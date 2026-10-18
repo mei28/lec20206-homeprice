@@ -99,10 +99,11 @@ def _(dataclass, field, psutil):
     def _variants():
         # Each variant fits one TabPFN per group, with that group's most recent rows as context. Every group of
         # the holdout and the test has rows in its context; stations and districts would leave 14-232 rows without.
+        # 6,000 rows per call ran out of the 8 GB GPU's memory at 50,000 context rows (2026-10-18); 2,000 is S13's.
         return {
-            "by_price_type": {"group": "price_type", "context_rows": 50000, "predict_chunk": 6000},
-            "by_area_band": {"group": "area_band", "context_rows": 50000, "predict_chunk": 6000},
-            "by_region": {"group": "region", "context_rows": 50000, "predict_chunk": 6000},
+            "by_price_type": {"group": "price_type", "context_rows": 50000, "predict_chunk": 2000},
+            "by_area_band": {"group": "area_band", "context_rows": 50000, "predict_chunk": 2000},
+            "by_region": {"group": "region", "context_rows": 50000, "predict_chunk": 2000},
         }
 
     def _member_runs():

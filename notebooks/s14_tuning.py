@@ -891,5 +891,24 @@ def _(mo, pl, restack_change, restack_score, search_summary, tuned_comparison):
     return
 
 
+@app.cell
+def _(mo):
+    mo.md(r"""
+    ## 7. 結果を読む
+
+    2026-10-17 の実行の結果です。
+
+    - 探索期間（2024Q3〜Q4）では、4つとも良くなりました。holdout でも良くなったのは XGBoost（-0.0106）と MLP（-0.0051）だけです。
+      CatBoost（+0.0004）と LightGBM（-0.0000）の改善は消えました。探索した期間にだけ合う設定を選んでいたことになります。
+      holdout を探索に使わず、選んだ設定の確かめに1回だけ使ったから、これが見えました。
+    - XGBoost は、値が31種類以下のカテゴリを one-hot で扱う設定に変わり、単独で CatBoost と同じくらいになりました。
+      その代わり、誤差の出方が CatBoost に似ました（誤差の相関 0.876 → 0.952）。
+    - スタッキングの平均は S13 と変わりません。重みもほとんど動かず（TabPFN 0.558、CatBoost 0.216、LightGBM 0.205、XGBoost 0.022、ほかは 0）、
+      良くなった XGBoost と MLP が持ち込んだのは、スタッキングがすでに持っている情報でした。
+    - 単独のメンバーが強くなっても、ほかのメンバーと同じ外し方をするなら、アンサンブルは良くなりません。S14 は採用しません。
+    """)
+    return
+
+
 if __name__ == "__main__":
     app.run()

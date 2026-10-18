@@ -56,13 +56,14 @@ def _(mo):
 
     TabPFN は、学習データの行を「文脈」として読み込み、その場で予測するモデルです。S13 では、東京全体の直近5万行を文脈にしました。
     5万行は TabPFN-3.5 が公式に対応する上限で、この 8GB の GPU にも既定の設定でちょうど収まる大きさでした。
-    この段階では、文脈の選び方と予測の回数を変えた4通りを比べます。
+    この段階では、文脈の選び方と予測の回数を変えた5通りを比べます。
 
     | 名前 | 文脈 | 変えたところ |
     |---|---|---|
     | `s13` | 東京全体の直近5万行 | S13 のまま（比べる基準） |
     | `estimators_16` | 東京全体の直近5万行 | 予測の回数（特徴量の並べ方を変えた予測の平均）を 8 → 16 |
-    | `context_large` | 東京全体の直近の行をもっと多く | メモリを節約する設定にして、上限を超える行数を読ませる |
+    | `context_large` | 東京全体の直近12万行 | メモリを節約する設定にして、上限を超える行数を読ませる |
+    | `context_all` | 東京全体の、使える行すべて | 同じ設定で、学習期間の行を全部読ませる |
     | `by_municipality` | 同じ市区町村の行だけ（全期間） | 市区町村ごとに TabPFN を分ける |
 
     最後の `by_municipality` は、近くの取引だけを見せる案です。大きなデータで TabPFN を使うとき、予測する行に近い行だけを文脈にすると
@@ -118,6 +119,14 @@ def _(dataclass, field, psutil):
                 "by_municipality": False,
                 "options": LARGE,
                 "predict_chunk": 12000,
+            },
+            # Every row up to the cutoff: 162,701 on the inner split, 180,632 for the holdout, 202,323 for the test.
+            # Added after context_large scored 0.1830 against 0.1890 for s13 on the inner split (2026-10-18).
+            "context_all": {
+                "context_rows": 1_000_000,
+                "by_municipality": False,
+                "options": LARGE,
+                "predict_chunk": 15000,
             },
             "by_municipality": {"context_rows": 50000, "by_municipality": True, "options": {}, "predict_chunk": 6000},
         }
@@ -402,9 +411,22 @@ def _(
     new_tabpfn = {}
     for _name in [n for n in (replacement, addition) if n not in (None, "s13")]:
         _variant = cfg.variants[_name]
-        _holdout = tabpfn_predict(fs.X.iloc[tr_idx], y_real[tr_idx], fs.X.iloc[va_idx], _variant) + fs.offset[va_idx]
-        _test = tabpfn_predict(fs.X_refit, y_real_refit, fs.X_test, _variant) + fs.offset_test
-        new_tabpfn[_name] = (_holdout, _test)
+        # A large context takes hours on the test, so each prediction is kept and a rerun reads it back.
+        _path_holdout = env.output_dir / EXP / f"holdout_{_name}.parquet"
+        if not _path_holdout.exists():
+            _pred = tabpfn_predict(fs.X.iloc[tr_idx], y_real[tr_idx], fs.X.iloc[va_idx], _variant)
+            pl.DataFrame({cfg.id_col: holdout_ids[cfg.id_col], "pred": _pred + fs.offset[va_idx]}).write_parquet(
+                _path_holdout
+            )
+        _path_test = env.output_dir / EXP / f"test_{_name}.parquet"
+        if not _path_test.exists():
+            _pred = tabpfn_predict(fs.X_refit, y_real_refit, fs.X_test, _variant)
+            pl.DataFrame({cfg.id_col: sample[cfg.id_col], "pred": _pred + fs.offset_test}).write_parquet(_path_test)
+        _holdout, _test = pl.read_parquet(_path_holdout), pl.read_parquet(_path_test)
+        assert _holdout[cfg.id_col].to_list() == holdout_ids[cfg.id_col].to_list()
+        assert _test[cfg.id_col].to_list() == sample[cfg.id_col].to_list()
+        new_tabpfn[_name] = (_holdout["pred"].to_numpy(), _test["pred"].to_numpy())
+        _holdout, _test = new_tabpfn[_name]
         _out = lesson.record_run(
             env,
             exp=EXP,

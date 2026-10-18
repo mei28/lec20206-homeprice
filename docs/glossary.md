@@ -68,6 +68,8 @@ Add a row when a new term enters use. The pinned Glossary Issue's body is this f
 | ハイパーパラメータ探索 | 木の深さや学習率など、学習の前に決める設定を、いくつも試して良いものを選ぶこと。同じ検証データで何度も選ぶと、そのデータにたまたま合う設定が選ばれる（S14） |
 | Optuna | ハイパーパラメータ探索のライブラリ。前の試行の結果から、次に試す設定を選ぶ（S14） |
 | TPE | Tree-structured Parzen Estimator。Optuna の標準の探索方法。良かった試行と悪かった試行の設定の分布を比べ、良い側に寄った設定を次に試す |
+| constant liar | 並列や中断で結果がまだ出ていない試行を、仮の悪い値で埋めて次の設定を選ぶ TPE の工夫。Optuna 5.0 では既定で有効で、探索を止めて再開すると RUNNING のまま残った試行が道筋を変える。S16 では無効にした |
+| 決定的なモード（deterministic mode） | GPU の計算の順番を固定し、同じ seed なら毎回同じ結果を出す PyTorch の設定。少し遅くなる。S16 の TabNet で使った（`torch.use_deterministic_algorithms(True)`） |
 | 黒魔術（NN stacking） | Kaggle で、NN などの非線形モデルで行うスタッキングの俗称。手順が複雑で過学習しやすい。S12 では MLP と LightGBM のスタッキングと、その平均を試した（#35） |
 | TabNet | 表データ向けのニューラルネット。行ごとに注意機構（attention）で見る特徴を選びながら、何段階かに分けて予測を組み立てる（S13、#36） |
 | TabPFN | 人工的に作った大量の表データで事前学習したモデル。新しいデータで重みを学習し直さず、学習データの行を文脈として読み込んで、その場で予測する（S13、#37） |

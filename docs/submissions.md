@@ -8,3 +8,4 @@
 | 2026-10-15 | s6_gbdt | catboost | 0.1990 | 0.19642 | S6 CatBoost on the S5 feature set |  | submission.csv |
 | 2026-10-16 | s9_ensemble | stacking | 0.1951 | 0.19222 | S9 Ridge stacking of the S5-S7 members (LightGBM, CatBoost, XGBoost, MLP, RandomForest, Ridge) |  | submission.csv |
 | 2026-10-17 | s12_black_magic | stacker_average | 0.1938 | 0.19139 | S12 average of four stackers (Ridge, Ridge by price type, MLP, LightGBM) on the S10 members |  | submission.csv |
+| 2026-10-18 | s13_tabular_dl | stacker_average_with_tabpfn | 0.1910 | 0.18848 | S13 average of four stackers on the S10 members plus TabPFN-3.5 |  | submission.csv |

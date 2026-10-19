@@ -9,3 +9,4 @@
 | 2026-10-16 | s9_ensemble | stacking | 0.1951 | 0.19222 | S9 Ridge stacking of the S5-S7 members (LightGBM, CatBoost, XGBoost, MLP, RandomForest, Ridge) |  | submission.csv |
 | 2026-10-17 | s12_black_magic | stacker_average | 0.1938 | 0.19139 | S12 average of four stackers (Ridge, Ridge by price type, MLP, LightGBM) on the S10 members |  | submission.csv |
 | 2026-10-18 | s13_tabular_dl | stacker_average_with_tabpfn | 0.1910 | 0.18848 | S13 average of four stackers on the S10 members plus TabPFN-3.5 |  | submission.csv |
+| 2026-10-19 | s17_tabpfn_context | stacker_average_s17 | 0.1870 | 0.18468 | S17 average of four stackers on the S13 members, TabPFN with a 120,000-row context plus a TabPFN per municipality (uploaded by hand on Kaggle) |  | submission.csv |

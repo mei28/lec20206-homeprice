@@ -34,7 +34,7 @@
 | s16_tabnet_tuning | stacker_average_tuned_with_tabnet | 0.1912 |  | s15_more_stack_rows | rmsle | S14 stacker average with the tuned TabNet added (#44) | output/s16_tabnet_tuning/stacker_average_tuned_with_tabnet |
 | s16_tabnet_tuning | tabnet_s13_settings_seed_avg | 0.2105 |  | s15_more_stack_rows | rmsle | S13 TabNet settings, averaged over seeds [0, 1, 2] (#44) | output/s16_tabnet_tuning/tabnet_s13_settings_seed_avg |
 | s16_tabnet_tuning | tabnet_tuned_seed_avg | 0.2082 |  | s15_more_stack_rows | rmsle | TabNet with the settings Optuna chose on 2024Q3-Q4, averaged over seeds [0, 1, 2] (#44) | output/s16_tabnet_tuning/tabnet_tuned_seed_avg |
-| s17_tabpfn_context | stacker_average_s17 | 0.1870 |  | s16_tabnet_tuning | rmsle | S13 stacker average, TabPFN replaced by context_large, added by_municipality (#45) | output/s17_tabpfn_context/stacker_average_s17 |
+| s17_tabpfn_context | stacker_average_s17 | 0.1870 | 0.18468 | s16_tabnet_tuning | rmsle | S13 stacker average, TabPFN replaced by context_large, added by_municipality (#45) | output/s17_tabpfn_context/stacker_average_s17 |
 | s17_tabpfn_context | tabpfn_by_municipality | 0.1954 |  | s16_tabnet_tuning | rmsle | TabPFN-3.5, variant by_municipality (#45) | output/s17_tabpfn_context/tabpfn_by_municipality |
 | s17_tabpfn_context | tabpfn_context_large | 0.1886 |  | s16_tabnet_tuning | rmsle | TabPFN-3.5, variant context_large (#45) | output/s17_tabpfn_context/tabpfn_context_large |
 | s18_comparable_sales | comparable_sales | 0.2456 |  | s17_tabpfn_context | rmsle | Comparable sales, k=5, weights [2.0, 1.0, 0.5, 0.5, 1.0] (#46) | output/s18_comparable_sales/comparable_sales |
@@ -44,8 +44,10 @@
 | s19_tabpfn_groups | tabpfn_by_region | 0.2014 |  | s18_comparable_sales | rmsle | TabPFN-3.5, one per group, variant by_region (#47) | output/s19_tabpfn_groups/tabpfn_by_region |
 | s1_baseline | floor_median | 0.8137 |  | none | rmsle | constant training median (#7) | output/s1_baseline/floor_median |
 | s1_baseline | lgbm_raw | 0.2988 |  | none | rmsle | minimal conversion, log1p target (#6, #8) | output/s1_baseline/lgbm_raw |
-| s20_tabpfn_160k | stacker_average_s20 | 0.1858 |  | s19_tabpfn_groups | rmsle | S17 stacker average with the 160,000-row TabPFN (add) (#49) | output/s20_tabpfn_160k/stacker_average_s20 |
+| s20_tabpfn_160k | stacker_average_s20 | 0.1858 | 0.18362 | s19_tabpfn_groups | rmsle | S17 stacker average with the 160,000-row TabPFN (add) (#49) | output/s20_tabpfn_160k/stacker_average_s20 |
 | s20_tabpfn_160k | tabpfn_160k | 0.1867 |  | s19_tabpfn_groups | rmsle | TabPFN-3.5 with the most recent 160,000 rows as context (#49) | output/s20_tabpfn_160k/tabpfn_160k |
+| s21_tabpfn_ppm2_price_type | stacker_average_s21 | 0.1856 |  | s20_tabpfn_160k | rmsle | S20 stacker average, ppm2 added (#50 #51) | output/s21_tabpfn_ppm2_price_type/stacker_average_s21 |
+| s21_tabpfn_ppm2_price_type | tabpfn_ppm2 | 0.1868 |  | s20_tabpfn_160k | rmsle | TabPFN-3.5, variant ppm2 (#50 #51) | output/s21_tabpfn_ppm2_price_type/tabpfn_ppm2 |
 | s3_features | drop_extremes | 0.2111 |  | s1_baseline | rmsle | adopted S3 features, extreme price-per-m2 rows dropped from training (#31) | output/s3_features/drop_extremes |
 | s3_features | location_codes | 0.2168 |  | s1_baseline | rmsle | locations as codes (#13) | output/s3_features/location_codes |
 | s3_features | minus_type | 0.2107 |  | s1_baseline | rmsle | without 価格情報区分 (#14) | output/s3_features/minus_type |
